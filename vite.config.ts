@@ -27,7 +27,7 @@ export default defineConfig({
       srcDir: 'src',
       filename: 'sw.ts',
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.png', 'sounds/notification.mp3'],
+      includeAssets: ['favicon.png', 'apple-touch-icon.png', 'sounds/notification.mp3'],
       manifest: {
         name: 'cloudPusher',
         short_name: 'cloudPusher',
@@ -39,10 +39,28 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: 'favicon.png',
+            src: 'pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable',
+            purpose: 'any',
+          },
+          {
+            src: 'pwa-maskable-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
+          {
+            src: 'pwa-maskable-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
           },
         ],
       },
