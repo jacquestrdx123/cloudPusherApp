@@ -18,7 +18,7 @@ Cross-platform push notification receiver for the cloudPusher Laravel backend. R
 ## Setup
 
 ```bash
-cd vue-app
+cd cloudPusher-app
 cp .env.example .env
 npm install
 npm run dev
