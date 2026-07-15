@@ -1,6 +1,10 @@
 /* global firebase */
-importScripts('https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js')
-importScripts('https://www.gstatic.com/firebasejs/11.6.0/firebase-messaging-compat.js')
+/**
+ * Fallback FCM service worker used only when the VitePWA worker is not registered.
+ * Production/dev normally use src/sw.ts (injectManifest) which includes FCM + Workbox.
+ */
+importScripts('https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js')
+importScripts('https://www.gstatic.com/firebasejs/11.10.0/firebase-messaging-compat.js')
 importScripts('/firebase-config.js')
 
 firebase.initializeApp(self.FIREBASE_CONFIG)
