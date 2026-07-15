@@ -31,8 +31,12 @@ console.info('[push-sw] service worker loaded, FCM background handler registered
 onBackgroundMessage(messaging, (payload) => {
   console.info('[push-sw] background message received', payload)
 
-  const title = payload.notification?.title ?? 'Notification'
-  const body = payload.notification?.body ?? ''
+  // The backend sends data-only messages for web so the browser doesn't
+  // auto-display a duplicate; title/body live in `data` (notification block is
+  // native-Android only).
+  const data = payload.data ?? {}
+  const title = data.title ?? payload.notification?.title ?? 'Notification'
+  const body = data.body ?? payload.notification?.body ?? ''
 
   self.registration
     .showNotification(title, {

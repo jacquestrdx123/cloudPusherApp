@@ -278,10 +278,13 @@ async function registerWebPush(
     onMessage(messaging, async (message) => {
       pushLog('foreground message received', message)
 
+      // Data-only web messages: title/body come from `data`, not `notification`.
+      const rawData = (message.data ?? {}) as Record<string, string>
+
       const payload: PushPayload = {
-        title: message.notification?.title ?? 'Notification',
-        body: message.notification?.body ?? null,
-        data: parsePushData(message.data as Record<string, string> | undefined),
+        title: rawData.title ?? message.notification?.title ?? 'Notification',
+        body: rawData.body ?? message.notification?.body ?? null,
+        data: parsePushData(rawData),
       }
 
       await playNotificationSound(settings.soundEnabled)

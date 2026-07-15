@@ -12,8 +12,10 @@ firebase.initializeApp(self.FIREBASE_CONFIG)
 const messaging = firebase.messaging()
 
 messaging.onBackgroundMessage((payload) => {
-  const title = payload.notification?.title ?? 'Notification'
-  const body = payload.notification?.body ?? ''
+  // Backend sends data-only messages for web; title/body live in `data`.
+  const data = payload.data ?? {}
+  const title = data.title ?? payload.notification?.title ?? 'Notification'
+  const body = data.body ?? payload.notification?.body ?? ''
 
   self.registration.showNotification(title, {
     body,
