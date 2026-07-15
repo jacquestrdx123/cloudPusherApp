@@ -23,7 +23,9 @@ export default defineConfig({
     legacy(),
     firebaseConfigPlugin(),
     VitePWA({
-
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'autoUpdate',
       includeAssets: ['favicon.png', 'sounds/notification.mp3'],
       manifest: {
@@ -44,9 +46,12 @@ export default defineConfig({
           },
         ],
       },
-      workbox: {
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,mp3,wav,woff2}'],
-        navigateFallback: 'index.html',
+      },
+      devOptions: {
+        enabled: true,
+        type: 'module',
       },
     }),
   ],
