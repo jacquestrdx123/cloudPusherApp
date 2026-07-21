@@ -32,6 +32,41 @@ export type PushPayload = {
 
 type PushHandler = (payload: PushPayload) => void
 
+/**
+ * Android notification channel used for rich alerts.
+ *
+ * Android 8+ ties the sound, importance and heads-up behaviour to the *channel*,
+ * not the individual push — the payload only selects a channel by id. Channels
+ * are immutable once created, so bump the `_vN` suffix (and the backend's
+ * `channel_id`) whenever the sound or importance needs to change.
+ *
+ * `sound` is the file name (no extension) of a resource in
+ * `android/app/src/main/res/raw/` — see docs/android-rich-push-notifications.md.
+ */
+export const ANDROID_RICH_CHANNEL_ID = 'rich_messages_v1'
+
+async function ensureAndroidChannels(): Promise<void> {
+  if (Capacitor.getPlatform() !== 'android') {
+    return
+  }
+
+  try {
+    await PushNotifications.createChannel({
+      id: ANDROID_RICH_CHANNEL_ID,
+      name: 'Alerts & Promotions',
+      description: 'Rich notifications with images and custom sound',
+      importance: 5, // HIGH — heads-up banner + sound
+      visibility: 1, // PUBLIC — show full content on the lock screen
+      sound: 'notification', // res/raw/notification.mp3 (omit the extension)
+      vibration: true,
+      lights: true,
+    })
+    pushLog('android rich notification channel ensured:', ANDROID_RICH_CHANNEL_ID)
+  } catch (error) {
+    pushWarn('failed to create android notification channel', error)
+  }
+}
+
 let firebaseApp: FirebaseApp | null = null
 let messaging: Messaging | null = null
 let initialized = false
@@ -173,6 +208,8 @@ async function registerNativePush(
   if (permStatus.receive !== 'granted') {
     throw new Error('Push notification permission was denied.')
   }
+
+  await ensureAndroidChannels()
 
   const tokenPromise = new Promise<string>((resolve, reject) => {
     void PushNotifications.addListener('registration', async (token: Token) => {

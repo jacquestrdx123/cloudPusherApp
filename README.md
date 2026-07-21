@@ -74,6 +74,10 @@ npx cap open android
 - Add `google-services.json` to the Android project
 - Configure Firebase in Laravel (`PUSH_FCM_ENABLED=true`)
 - Device tokens register as `fcm` platform
+- **Rich notifications (big picture + custom sound):** the app creates a
+  `rich_messages_v1` channel with a bundled sound; the backend sends
+  `android.notification.image` + `channel_id`. Full payload spec:
+  [docs/android-rich-push-notifications.md](docs/android-rich-push-notifications.md)
 
 ## PWA install
 

@@ -86,6 +86,22 @@ account must do the signing/capability bits once:
 drag e.g. `chime.caf` into the App target in Xcode so it lands in the app
 bundle. See §5.
 
+### Will this survive `npx cap sync` / rebuilds? — Yes
+
+Capacitor treats the whole `ios/` folder as **your** project after the one-time
+`npx cap add ios`. `npx cap sync`, `copy`, `update` and `build` only regenerate
+the files listed in `ios/.gitignore`: `App/build`, `App/Pods`, `App/output`, the
+copied web assets in `App/App/public`, `DerivedData`, and the generated
+`capacitor.config.json` / `config.xml`.
+
+They do **not** rewrite `project.pbxproj`, `AppDelegate.swift`, or the
+`NotificationService/` sources — all of which are committed to git. There is no
+`cap build` step that regenerates the Xcode project. The only command that
+recreates the project from the template is `npx cap add ios`, which you run once;
+if you ever re-run it you would re-add the extension (see the fallback note
+below). Because everything is under version control, any change Capacitor *did*
+make would show up as a reviewable git diff.
+
 ---
 
 ## 3. Backend payload — raw APNs (this is the important part)
