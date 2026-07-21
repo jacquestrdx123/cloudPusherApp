@@ -15,6 +15,12 @@
           <ion-card-subtitle>{{ notification.channel.toUpperCase() }}</ion-card-subtitle>
           <ion-card-title>{{ notification.title }}</ion-card-title>
         </ion-card-header>
+        <img
+          v-if="mediaUrl"
+          class="notification-media"
+          :src="mediaUrl"
+          alt=""
+        />
         <ion-card-content>
           <p v-if="notification.body">{{ notification.body }}</p>
           <ion-note>{{ formattedDeliveredAt }}</ion-note>
@@ -62,6 +68,7 @@ import {
   IonToolbar,
 } from '@ionic/vue'
 import { useNotificationStore } from '@/stores/notifications'
+import { extractMediaUrl } from '@/services/media'
 
 const route = useRoute()
 const store = useNotificationStore()
@@ -69,6 +76,8 @@ const store = useNotificationStore()
 const notification = computed(() =>
   store.items.find((item) => item.id === decodeURIComponent(String(route.params.id))),
 )
+
+const mediaUrl = computed(() => extractMediaUrl(notification.value?.payload))
 
 const payloadEntries = computed(() =>
   Object.entries(notification.value?.payload ?? {}),
@@ -94,3 +103,12 @@ function formatValue(value: unknown): string {
   return typeof value === 'object' ? JSON.stringify(value) : String(value)
 }
 </script>
+
+<style scoped>
+.notification-media {
+  display: block;
+  width: 100%;
+  max-height: 320px;
+  object-fit: cover;
+}
+</style>

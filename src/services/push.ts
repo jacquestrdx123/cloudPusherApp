@@ -19,6 +19,7 @@ import {
 } from 'firebase/messaging'
 import { config, isFirebaseConfigured } from '@/config/env'
 import { registerDeviceToken } from '@/services/api'
+import { extractMediaUrl } from '@/services/media'
 import { playNotificationSound } from '@/services/sound'
 import { pushError, pushLog, pushWarn } from '@/services/log'
 import type { AppSettings } from '@/types/notification'
@@ -112,10 +113,15 @@ async function showForegroundNotification(payload: PushPayload): Promise<void> {
     return
   }
 
-  const options: NotificationOptions = {
+  const mediaUrl = extractMediaUrl(payload.data)
+
+  const options: NotificationOptions & { image?: string } = {
     body: payload.body ?? undefined,
     icon: '/favicon.png',
     badge: '/favicon.png',
+    // `image` renders a large hero picture below the text on supporting
+    // browsers (Chrome/Edge/Android). Unsupported browsers ignore it.
+    ...(mediaUrl ? { image: mediaUrl } : {}),
     tag: String(payload.data.push_notification_id ?? Date.now()),
     data: payload.data,
   }

@@ -10,6 +10,8 @@ Cross-platform push notification receiver for the cloudPusher Laravel backend. R
 
 - Push notification registration with the cloudPusher API
 - Inbox UI with unread badges and pull-to-refresh
+- **Rich iOS notifications** — big images/GIFs, custom sounds and action buttons
+  via a Notification Service Extension ([docs](docs/ios-rich-push-notifications.md))
 - **Sound on receive** (foreground app audio + native system sound)
 - Haptic feedback on native platforms
 - Offline cache of recent notifications
@@ -62,6 +64,10 @@ npx cap open android
 - Enable Push Notifications capability in Xcode
 - Upload APNs key to Laravel backend (`PUSH_APNS_ENABLED=true`)
 - Device tokens register as `apns` platform
+- **Rich notifications (images + custom sounds):** the `NotificationService`
+  extension is already in the Xcode project — assign a signing team to it once,
+  and have the backend send `mutable-content: 1` plus a `media_url`. Full
+  payload spec and one-time setup: [docs/ios-rich-push-notifications.md](docs/ios-rich-push-notifications.md)
 
 ### Android requirements
 
