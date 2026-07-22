@@ -27,7 +27,43 @@ messaging.onBackgroundMessage((payload) => {
   })
 })
 
+function notificationDeepLink(data) {
+  const pushId = data && data.push_notification_id
+
+  if (pushId === undefined || pushId === null || pushId === '') {
+    return '/tabs/inbox'
+  }
+
+  return '/tabs/inbox?push_notification_id=' + encodeURIComponent(String(pushId))
+}
+
+async function openOrFocusDeepLink(url) {
+  const clients = await self.clients.matchAll({
+    type: 'window',
+    includeUncontrolled: true,
+  })
+
+  for (const client of clients) {
+    if (!('focus' in client)) {
+      continue
+    }
+
+    await client.focus()
+
+    if ('navigate' in client && typeof client.navigate === 'function') {
+      await client.navigate(url)
+      return
+    }
+
+    client.postMessage({ type: 'NOTIFICATION_CLICK', url: url })
+    return
+  }
+
+  await self.clients.openWindow(url)
+}
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  event.waitUntil(self.clients.openWindow('/'))
+  const data = event.notification.data || {}
+  event.waitUntil(openOrFocusDeepLink(notificationDeepLink(data)))
 })

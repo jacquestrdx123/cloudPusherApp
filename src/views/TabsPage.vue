@@ -4,9 +4,9 @@
       <ion-router-outlet />
       <ion-tab-bar slot="bottom">
         <ion-tab-button tab="inbox" href="/tabs/inbox">
-          <ion-icon :icon="mailOutline" />
+          <ion-icon :icon="notificationsOutline" />
           <ion-label>Inbox</ion-label>
-          <ion-badge v-if="store.unreadCount" color="danger">{{ store.unreadCount }}</ion-badge>
+          <ion-badge v-if="store.unreadCount" color="primary">{{ store.unreadCount }}</ion-badge>
         </ion-tab-button>
         <ion-tab-button v-if="isCompanyAdmin" tab="approvals" href="/tabs/approvals">
           <ion-icon :icon="checkmarkCircleOutline" />
@@ -33,7 +33,7 @@ import {
   IonTabButton,
   IonTabs,
 } from '@ionic/vue'
-import { checkmarkCircleOutline, mailOutline, settingsOutline } from 'ionicons/icons'
+import { checkmarkCircleOutline, notificationsOutline, settingsOutline } from 'ionicons/icons'
 import { useSettings } from '@/composables/useSettings'
 import { useNotificationStore } from '@/stores/notifications'
 

@@ -38,8 +38,20 @@ function authUrl(path: string): string {
   return `${apiBase()}/api/v1/auth${path}`
 }
 
+function v1Url(path: string): string {
+  return `${apiBase()}/api/v1${path}`
+}
+
 function companyUrl(companySlug: string, path: string): string {
   return `${apiBase()}/api/v1/${companySlug}${path}`
+}
+
+function adminCompanySlug(settings: AppSettings): string {
+  return (
+    settings.activeCompanySlug ||
+    settings.companies.find((company) => company.is_company_admin)?.slug ||
+    settings.companySlug
+  )
 }
 
 async function request<T>(
@@ -119,6 +131,20 @@ export async function logout(settings: AppSettings): Promise<void> {
   await request(authUrl('/logout'), { method: 'POST' }, settings.accessToken)
 }
 
+export async function deleteAccount(
+  settings: AppSettings,
+  password: string,
+): Promise<void> {
+  await request(
+    authUrl('/account'),
+    {
+      method: 'DELETE',
+      body: JSON.stringify({ password }),
+    },
+    settings.accessToken,
+  )
+}
+
 export async function registerDeviceToken(
   settings: AppSettings,
   payload: {
@@ -128,7 +154,7 @@ export async function registerDeviceToken(
   },
 ): Promise<void> {
   await request(
-    companyUrl(settings.companySlug, '/device-tokens'),
+    v1Url('/device-tokens'),
     {
       method: 'POST',
       body: JSON.stringify({
@@ -146,7 +172,7 @@ export async function unregisterDeviceToken(
   deviceTokenId: number,
 ): Promise<void> {
   await request(
-    companyUrl(settings.companySlug, `/device-tokens/${deviceTokenId}`),
+    v1Url(`/device-tokens/${deviceTokenId}`),
     { method: 'DELETE' },
     settings.accessToken,
   )
@@ -155,14 +181,21 @@ export async function unregisterDeviceToken(
 export async function fetchInbox(
   settings: AppSettings,
   page = 1,
+  companySlug?: string,
 ): Promise<PaginatedResponse<InboxApiItem>> {
   const params = new URLSearchParams({
     page: String(page),
     per_page: '50',
   })
 
+  const filter = companySlug ?? settings.inboxCompanyFilter
+
+  if (filter) {
+    params.set('company', filter)
+  }
+
   return request(
-    companyUrl(settings.companySlug, `/inbox?${params}`),
+    v1Url(`/inbox?${params}`),
     { method: 'GET' },
     settings.accessToken,
   )
@@ -173,7 +206,7 @@ export async function markInboxRead(
   inboxId: number,
 ): Promise<InboxApiItem> {
   const response = await request<{ data: InboxApiItem }>(
-    companyUrl(settings.companySlug, `/inbox/${inboxId}/read`),
+    v1Url(`/inbox/${inboxId}/read`),
     { method: 'PATCH' },
     settings.accessToken,
   )
@@ -182,8 +215,16 @@ export async function markInboxRead(
 }
 
 export async function markAllInboxRead(settings: AppSettings): Promise<void> {
+  const params = new URLSearchParams()
+
+  if (settings.inboxCompanyFilter) {
+    params.set('company', settings.inboxCompanyFilter)
+  }
+
+  const query = params.toString()
+
   await request(
-    companyUrl(settings.companySlug, '/inbox/read-all'),
+    v1Url(`/inbox/read-all${query ? `?${query}` : ''}`),
     { method: 'PATCH' },
     settings.accessToken,
   )
@@ -200,9 +241,10 @@ export async function fetchRegistrations(
   status: 'pending' | 'approved' | 'rejected' = 'pending',
 ): Promise<PaginatedResponse<UserRegistrationItem>> {
   const params = new URLSearchParams({ status, per_page: '50' })
+  const slug = adminCompanySlug(settings)
 
   return request(
-    companyUrl(settings.companySlug, `/registrations?${params}`),
+    companyUrl(slug, `/registrations?${params}`),
     { method: 'GET' },
     settings.accessToken,
   )
@@ -213,8 +255,9 @@ export async function approveRegistration(
   registrationId: number,
   notes?: string,
 ): Promise<UserRegistrationItem> {
+  const slug = adminCompanySlug(settings)
   const response = await request<{ data: UserRegistrationItem }>(
-    companyUrl(settings.companySlug, `/registrations/${registrationId}/approve`),
+    companyUrl(slug, `/registrations/${registrationId}/approve`),
     {
       method: 'POST',
       body: JSON.stringify({ notes: notes ?? null }),
@@ -230,8 +273,9 @@ export async function rejectRegistration(
   registrationId: number,
   notes?: string,
 ): Promise<UserRegistrationItem> {
+  const slug = adminCompanySlug(settings)
   const response = await request<{ data: UserRegistrationItem }>(
-    companyUrl(settings.companySlug, `/registrations/${registrationId}/reject`),
+    companyUrl(slug, `/registrations/${registrationId}/reject`),
     {
       method: 'POST',
       body: JSON.stringify({ notes: notes ?? null }),
@@ -240,4 +284,20 @@ export async function rejectRegistration(
   )
 
   return response.data
+}
+
+export async function inviteCompanyMember(
+  settings: AppSettings,
+  payload: { phone?: string; email?: string },
+): Promise<void> {
+  const slug = adminCompanySlug(settings)
+
+  await request(
+    companyUrl(slug, '/members'),
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+    settings.accessToken,
+  )
 }

@@ -5,6 +5,8 @@ const SETTINGS_KEY = 'cloudpusher_settings'
 const INBOX_KEY = 'cloudpusher_inbox'
 
 const defaults: AppSettings = {
+  companies: [],
+  activeCompanySlug: '',
   companySlug: '',
   companyName: '',
   accessToken: '',
@@ -15,6 +17,7 @@ const defaults: AppSettings = {
   isCompanyAdmin: false,
   soundEnabled: true,
   deviceName: '',
+  inboxCompanyFilter: '',
 }
 
 export async function loadSettings(): Promise<AppSettings> {
@@ -25,11 +28,29 @@ export async function loadSettings(): Promise<AppSettings> {
   }
 
   const parsed = JSON.parse(value) as Partial<AppSettings>
+  const companies = parsed.companies ?? []
+  const activeCompanySlug =
+    parsed.activeCompanySlug ||
+    companies.find((company) => company.is_company_admin)?.slug ||
+    companies[0]?.slug ||
+    parsed.companySlug ||
+    ''
 
   return {
     ...defaults,
     ...parsed,
+    companies,
+    activeCompanySlug,
+    companySlug: parsed.companySlug || activeCompanySlug || '',
+    companyName:
+      parsed.companyName ||
+      companies.find((company) => company.slug === activeCompanySlug)?.name ||
+      '',
     accessToken: parsed.accessToken ?? '',
+    isCompanyAdmin:
+      parsed.isCompanyAdmin ??
+      companies.some((company) => company.is_company_admin),
+    inboxCompanyFilter: parsed.inboxCompanyFilter ?? '',
   }
 }
 
@@ -62,5 +83,5 @@ export async function clearCachedInbox(): Promise<void> {
 }
 
 export function isConfigured(settings: AppSettings): boolean {
-  return Boolean(settings.companySlug && settings.accessToken)
+  return Boolean(settings.accessToken && settings.companies.length > 0)
 }

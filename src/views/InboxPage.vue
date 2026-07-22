@@ -1,22 +1,47 @@
 <template>
   <ion-page>
-    <ion-header>
-      <ion-toolbar color="primary">
+    <ion-header class="ion-no-border">
+      <ion-toolbar>
         <ion-title>Inbox</ion-title>
         <ion-buttons slot="end">
-          <ion-button @click="markAllRead" :disabled="store.unreadCount === 0">
+          <ion-button @click="markAllRead" :disabled="store.unreadCount === 0" aria-label="Mark all read">
             <ion-icon slot="icon-only" :icon="checkmarkDoneOutline" />
           </ion-button>
-          <ion-button @click="refresh" :disabled="store.syncing">
+          <ion-button @click="refresh" :disabled="store.syncing" aria-label="Refresh">
             <ion-icon slot="icon-only" :icon="refreshOutline" />
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
-      <ion-toolbar v-if="store.pushReady" color="light">
-        <ion-title size="small">
-          <ion-icon :icon="radioOutline" color="success" /> Push active
-          <span v-if="store.unreadCount"> · {{ store.unreadCount }} unread</span>
-        </ion-title>
+      <ion-toolbar v-if="store.pushReady || store.unreadCount" class="status-bar">
+        <div class="status-row">
+          <span v-if="store.pushReady" class="cp-status">
+            <ion-icon :icon="radioOutline" />
+            Push active
+          </span>
+          <span v-if="store.unreadCount" class="unread-pill">
+            {{ store.unreadCount }} unread
+          </span>
+        </div>
+      </ion-toolbar>
+      <ion-toolbar v-if="configured && companies.length > 0" class="filter-bar">
+        <div class="company-filters">
+          <ion-chip
+            :outline="inboxFilter !== ''"
+            :color="inboxFilter === '' ? 'primary' : 'medium'"
+            @click="setInboxFilter('')"
+          >
+            All
+          </ion-chip>
+          <ion-chip
+            v-for="company in companies"
+            :key="company.slug"
+            :outline="inboxFilter !== company.slug"
+            :color="inboxFilter === company.slug ? 'primary' : 'medium'"
+            @click="setInboxFilter(company.slug)"
+          >
+            {{ company.name }}
+          </ion-chip>
+        </div>
       </ion-toolbar>
     </ion-header>
 
@@ -25,32 +50,36 @@
         <ion-refresher-content />
       </ion-refresher>
 
-      <div v-if="!configured" class="empty-state">
-        <ion-icon :icon="settingsOutline" />
+      <div v-if="!configured" class="cp-empty">
+        <div class="cp-empty__icon">
+          <ion-icon :icon="settingsOutline" />
+        </div>
         <h2>Sign in to cloudPusher</h2>
         <p>Log in with your mobile number to receive notifications.</p>
         <ion-button router-link="/login">Sign in</ion-button>
       </div>
 
-      <div v-else-if="store.loading" class="empty-state">
-        <ion-spinner name="crescent" />
+      <div v-else-if="store.loading" class="cp-empty">
+        <ion-spinner name="crescent" color="primary" />
         <p>Loading notifications…</p>
       </div>
 
-      <div v-else-if="store.sortedItems.length === 0" class="empty-state">
-        <ion-icon :icon="notificationsOffOutline" />
-        <h2>No notifications yet</h2>
-        <p>When a push arrives, it will appear here with sound.</p>
+      <div v-else-if="store.sortedItems.length === 0" class="cp-empty">
+        <div class="cp-empty__icon">
+          <ion-icon :icon="notificationsOffOutline" />
+        </div>
+        <h2>All clear</h2>
+        <p>When a push arrives, it will show up here with sound.</p>
       </div>
 
-      <ion-list v-else>
+      <div v-else class="inbox-list">
         <NotificationItem
           v-for="item in store.sortedItems"
           :key="item.id"
           :notification="item"
           @select="openNotification"
         />
-      </ion-list>
+      </div>
 
       <ion-toast
         :is-open="Boolean(toastMessage)"
@@ -63,15 +92,15 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import {
   IonButton,
   IonButtons,
+  IonChip,
   IonContent,
   IonHeader,
   IonIcon,
-  IonList,
   IonPage,
   IonRefresher,
   IonRefresherContent,
@@ -80,6 +109,7 @@ import {
   IonToast,
   IonToolbar,
   RefresherCustomEvent,
+  onIonViewWillEnter,
 } from '@ionic/vue'
 import {
   checkmarkDoneOutline,
@@ -90,15 +120,94 @@ import {
 } from 'ionicons/icons'
 import NotificationItem from '@/components/NotificationItem.vue'
 import { useSettings } from '@/composables/useSettings'
-import { initializePushNotifications } from '@/services/push'
+import { initializePushNotifications, type PushPayload } from '@/services/push'
 import { playNotificationSound, unlockAudio } from '@/services/sound'
 import { useNotificationStore } from '@/stores/notifications'
 import type { ReceivedNotification } from '@/types/notification'
 
 const router = useRouter()
+const route = useRoute()
 const store = useNotificationStore()
-const { settings, configured, hydrate } = useSettings()
+const { settings, configured, hydrate, update } = useSettings()
 const toastMessage = ref<string | null>(null)
+const bootstrapped = ref(false)
+
+const companies = computed(() => settings.value?.companies ?? [])
+const inboxFilter = computed(() => settings.value?.inboxCompanyFilter ?? '')
+
+async function setInboxFilter(slug: string): Promise<void> {
+  await update({ inboxCompanyFilter: slug })
+
+  if (settings.value) {
+    await store.syncInbox(settings.value)
+  }
+}
+
+async function openNotification(notification: ReceivedNotification): Promise<void> {
+  await store.markRead(notification.id, settings.value ?? undefined)
+  await router.push(`/tabs/inbox/${encodeURIComponent(notification.id)}`)
+}
+
+async function openFromPushPayload(payload: PushPayload): Promise<void> {
+  const pushId = payload.data.push_notification_id
+
+  if (pushId === undefined || pushId === null || pushId === '') {
+    return
+  }
+
+  await openFromPushNotificationId(String(pushId))
+}
+
+async function openFromPushNotificationId(pushNotificationId: string): Promise<void> {
+  if (!settings.value) {
+    return
+  }
+
+  try {
+    await store.syncInbox(settings.value)
+  } catch {
+    // Fall through to whatever is already cached locally.
+  }
+
+  const item = store.findByPushNotificationId(pushNotificationId)
+
+  await router.replace({ path: '/tabs/inbox', query: {} })
+
+  if (!item) {
+    toastMessage.value = 'Notification received. Pull to refresh if it is missing.'
+
+    return
+  }
+
+  await openNotification(item)
+}
+
+async function handlePendingDeepLink(): Promise<void> {
+  const pushId = route.query.push_notification_id
+
+  if (typeof pushId !== 'string' || pushId === '') {
+    return
+  }
+
+  await openFromPushNotificationId(pushId)
+}
+
+function onServiceWorkerMessage(event: MessageEvent): void {
+  if (event.data?.type !== 'NOTIFICATION_CLICK' || typeof event.data.url !== 'string') {
+    return
+  }
+
+  const url = new URL(event.data.url, window.location.origin)
+  const pushId = url.searchParams.get('push_notification_id')
+
+  if (pushId) {
+    void openFromPushNotificationId(pushId)
+
+    return
+  }
+
+  void router.push(url.pathname + url.search)
+}
 
 async function bootstrap(): Promise<void> {
   await store.hydrateFromCache()
@@ -113,18 +222,29 @@ async function bootstrap(): Promise<void> {
   try {
     await store.syncInbox(current)
 
-    await initializePushNotifications(current, async (payload) => {
-      store.addFromPush(payload)
-      await playNotificationSound(current.soundEnabled)
-      toastMessage.value = payload.title
-    })
+    const token = await initializePushNotifications(
+      current,
+      async (payload) => {
+        store.addFromPush(payload)
+        await playNotificationSound(current.soundEnabled)
+        toastMessage.value = payload.title
+      },
+      {
+        onOpened: async (payload) => {
+          await openFromPushPayload(payload)
+        },
+      },
+    )
 
-    store.pushReady = true
+    store.pushReady = Boolean(token)
+    await handlePendingDeepLink()
   } catch (error) {
+    store.pushReady = false
     toastMessage.value =
       error instanceof Error ? error.message : 'Failed to connect'
   } finally {
     store.loading = false
+    bootstrapped.value = true
   }
 }
 
@@ -145,40 +265,90 @@ async function markAllRead(): Promise<void> {
   await store.markAllRead(settings.value ?? undefined)
 }
 
-async function openNotification(notification: ReceivedNotification): Promise<void> {
-  await store.markRead(notification.id, settings.value ?? undefined)
-  router.push(`/tabs/inbox/${encodeURIComponent(notification.id)}`)
-}
+onIonViewWillEnter(() => {
+  if (!bootstrapped.value || !settings.value) {
+    return
+  }
+
+  void (async () => {
+    try {
+      await store.syncInbox(settings.value!)
+    } catch {
+      // Keep showing cached notifications if refresh fails.
+    }
+
+    await handlePendingDeepLink()
+  })()
+})
+
+watch(
+  () => route.query.push_notification_id,
+  (pushId) => {
+    if (!bootstrapped.value || typeof pushId !== 'string' || pushId === '') {
+      return
+    }
+
+    void openFromPushNotificationId(pushId)
+  },
+)
 
 onMounted(async () => {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', onServiceWorkerMessage)
+  }
+
   await unlockAudio()
   await bootstrap()
+})
+
+onUnmounted(() => {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.removeEventListener('message', onServiceWorkerMessage)
+  }
 })
 </script>
 
 <style scoped>
-.empty-state {
+.status-bar,
+.filter-bar {
+  --min-height: 0;
+  --padding-top: 0;
+  --padding-bottom: 0;
+}
+
+.status-row {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  min-height: 60vh;
-  padding: 2rem;
-  text-align: center;
+  gap: 0.5rem;
+  padding: 0 1rem 0.65rem;
 }
 
-.empty-state ion-icon {
-  font-size: 3rem;
-  color: var(--ion-color-medium);
+.unread-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ion-color-primary) 16%, transparent);
+  color: var(--ion-color-primary);
+  font-size: 0.78rem;
+  font-weight: 650;
 }
 
-.empty-state h2 {
-  margin: 0;
+.company-filters {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.4rem;
+  padding: 0 0.85rem 0.75rem;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
-.empty-state p {
-  margin: 0;
-  color: var(--ion-color-medium);
+.company-filters::-webkit-scrollbar {
+  display: none;
+}
+
+.inbox-list {
+  padding: 0.65rem 0 1.25rem;
 }
 </style>

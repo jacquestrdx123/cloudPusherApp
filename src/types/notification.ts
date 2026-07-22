@@ -1,4 +1,15 @@
+export interface CompanyMembership {
+  id: number
+  name: string
+  slug: string
+  is_company_admin: boolean
+}
+
 export interface AppSettings {
+  companies: CompanyMembership[]
+  /** Active company for admin actions (approvals / invite). */
+  activeCompanySlug: string
+  /** @deprecated Prefer companies[]; kept for display fallback. */
   companySlug: string
   companyName: string
   accessToken: string
@@ -9,6 +20,8 @@ export interface AppSettings {
   isCompanyAdmin: boolean
   soundEnabled: boolean
   deviceName: string
+  /** Inbox filter: empty string = all companies. */
+  inboxCompanyFilter: string
 }
 
 export interface AuthUser {
@@ -17,6 +30,7 @@ export interface AuthUser {
   email: string
   phone: string | null
   locale: string | null
+  companies: CompanyMembership[]
   company_id: number | null
   is_company_admin: boolean
   company: {
@@ -41,6 +55,7 @@ export interface UserRegistrationItem {
 export interface ReceivedNotification {
   id: string
   serverId: number | null
+  pushNotificationId: number | null
   title: string
   body: string | null
   payload: Record<string, unknown>
@@ -49,6 +64,9 @@ export interface ReceivedNotification {
   readAt: string | null
   read: boolean
   source: 'push' | 'sync'
+  companyId: number | null
+  companyName: string | null
+  companySlug: string | null
 }
 
 export interface InboxApiItem {
@@ -62,6 +80,12 @@ export interface InboxApiItem {
   read: boolean
   created_at: string
   push_notification_id: number
+  company_id?: number
+  company?: {
+    id: number
+    name: string
+    slug: string
+  } | null
 }
 
 export interface PaginatedResponse<T> {

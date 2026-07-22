@@ -1,46 +1,52 @@
 <template>
-  <ion-page>
-    <ion-header>
-      <ion-toolbar color="primary">
-        <ion-title>cloudPusher</ion-title>
-      </ion-toolbar>
-    </ion-header>
+  <ion-page class="login-page">
+    <ion-content :fullscreen="true">
+      <div class="login-shell">
+        <div class="brand">
+          <img class="brand__mark" src="/apple-touch-icon.png" alt="" width="72" height="72" />
+          <p class="brand__name">cloudPusher</p>
+          <h1>Signal in. Act fast.</h1>
+          <p class="brand__copy">Sign in with your mobile number to receive company notifications.</p>
+        </div>
 
-    <ion-content class="ion-padding">
-      <div class="hero">
-        <h1>Sign in</h1>
-        <p>Enter your mobile number and password to continue.</p>
-      </div>
+        <div class="login-card">
+          <ion-list lines="full">
+            <ion-item>
+              <ion-input
+                v-model="form.phone"
+                label="Mobile number"
+                label-placement="stacked"
+                type="tel"
+                placeholder="+27821234567"
+                autocomplete="tel"
+              />
+            </ion-item>
+            <ion-item>
+              <ion-input
+                v-model="form.password"
+                label="Password"
+                label-placement="stacked"
+                type="password"
+                autocomplete="current-password"
+              />
+            </ion-item>
+          </ion-list>
 
-      <ion-list>
-        <ion-item>
-          <ion-input
-            v-model="form.phone"
-            label="Mobile number"
-            label-placement="stacked"
-            type="tel"
-            placeholder="+27821234567"
-            autocomplete="tel"
-          />
-        </ion-item>
-        <ion-item>
-          <ion-input
-            v-model="form.password"
-            label="Password"
-            label-placement="stacked"
-            type="password"
-            autocomplete="current-password"
-          />
-        </ion-item>
-      </ion-list>
-
-      <div class="actions">
-        <ion-button expand="block" :disabled="busy || !canSubmit" @click="signIn">
-          Sign in
-        </ion-button>
-        <ion-button expand="block" fill="clear" router-link="/register">
-          Need an account? Register
-        </ion-button>
+          <div class="actions">
+            <ion-button expand="block" size="large" :disabled="busy || !canSubmit" @click="signIn">
+              {{ busy ? 'Signing in…' : 'Sign in' }}
+            </ion-button>
+            <ion-button
+              expand="block"
+              fill="clear"
+              :href="contactUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Need an account? Register
+            </ion-button>
+          </div>
+        </div>
       </div>
 
       <ion-toast
@@ -60,20 +66,19 @@ import { useRouter } from 'vue-router'
 import {
   IonButton,
   IonContent,
-  IonHeader,
   IonInput,
   IonItem,
   IonList,
   IonPage,
-  IonTitle,
   IonToast,
-  IonToolbar,
 } from '@ionic/vue'
 import { useSettings } from '@/composables/useSettings'
+import { config } from '@/config/env'
 import { loginWithPassword } from '@/services/api'
 
 const router = useRouter()
 const { hydrate, update, configured } = useSettings()
+const contactUrl = config.contactUrl
 
 const busy = ref(false)
 const message = ref<string | null>(null)
@@ -107,19 +112,38 @@ async function signIn(): Promise<void> {
     const phone = form.phone.trim()
     const response = await loginWithPassword(phone, form.password)
 
-    if (!response.user.company?.slug) {
+    if (!response.user.companies?.length && !response.user.company?.slug) {
       throw new Error('This account is not linked to a company.')
     }
 
+    const companies = response.user.companies?.length
+      ? response.user.companies
+      : response.user.company
+        ? [
+            {
+              id: response.user.company.id,
+              name: response.user.company.name,
+              slug: response.user.company.slug,
+              is_company_admin: Boolean(response.user.is_company_admin),
+            },
+          ]
+        : []
+
+    const activeCompany =
+      companies.find((company) => company.is_company_admin) ?? companies[0]
+
     await update({
       accessToken: response.token,
-      companySlug: response.user.company.slug,
-      companyName: response.user.company.name,
+      companies,
+      activeCompanySlug: activeCompany?.slug ?? '',
+      companySlug: activeCompany?.slug ?? '',
+      companyName: activeCompany?.name ?? '',
       userId: response.user.id,
       userName: response.user.name,
       userEmail: response.user.email,
       userPhone: response.user.phone ?? phone,
-      isCompanyAdmin: Boolean(response.user.is_company_admin),
+      isCompanyAdmin: companies.some((company) => company.is_company_admin),
+      inboxCompanyFilter: '',
     })
 
     router.replace('/tabs/inbox')
@@ -133,23 +157,72 @@ async function signIn(): Promise<void> {
 </script>
 
 <style scoped>
-.hero {
-  margin: 1rem 0 1.5rem;
+.login-shell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100%;
+  padding: calc(2.5rem + env(safe-area-inset-top)) 1.25rem calc(2rem + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(120% 70% at 10% -10%, color-mix(in srgb, var(--ion-color-primary) 28%, transparent), transparent 55%),
+    radial-gradient(90% 50% at 100% 0%, color-mix(in srgb, #f97316 18%, transparent), transparent 50%),
+    var(--ion-background-color);
 }
 
-.hero h1 {
-  margin: 0 0 0.5rem;
+.brand {
+  margin: 0 0 1.75rem 0.15rem;
 }
 
-.hero p {
+.brand__mark {
+  display: block;
+  width: 4.5rem;
+  height: 4.5rem;
+  margin-bottom: 1.1rem;
+  border-radius: 1.15rem;
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--ion-color-primary) 35%, transparent);
+}
+
+.brand__name {
+  margin: 0 0 0.55rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ion-color-primary);
+}
+
+.brand h1 {
+  margin: 0 0 0.55rem;
+  font-size: clamp(1.9rem, 6vw, 2.35rem);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 1.1;
+}
+
+.brand__copy {
   margin: 0;
+  max-width: 18rem;
   color: var(--ion-color-medium);
   line-height: 1.5;
+  font-size: 0.98rem;
+}
+
+.login-card {
+  border-radius: var(--cp-radius);
+  background: var(--cp-surface);
+  border: 1px solid var(--cp-border);
+  overflow: hidden;
+  box-shadow: 0 18px 40px rgba(15, 20, 25, 0.08);
+}
+
+.login-card ion-list {
+  background: transparent;
+  padding-top: 0.35rem;
 }
 
 .actions {
   display: grid;
-  gap: 0.5rem;
-  margin-top: 1.5rem;
+  gap: 0.25rem;
+  padding: 1rem 1rem 1.15rem;
 }
 </style>

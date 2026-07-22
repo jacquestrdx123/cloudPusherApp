@@ -29,7 +29,7 @@ export type PushPayload = {
   data: Record<string, unknown>
 }
 
-type PushHandler = (payload: PushPayload) => void
+type PushHandler = (payload: PushPayload) => void | Promise<void>
 
 let firebaseApp: FirebaseApp | null = null
 let messaging: Messaging | null = null
@@ -37,6 +37,24 @@ let initialized = false
 let initializing: Promise<string> | null = null
 let currentToken: string | null = null
 let messageHandlerBound = false
+let pushReceivedHandler: PushHandler | null = null
+let pushOpenedHandler: PushHandler | null = null
+
+function setPushHandlers(onReceived: PushHandler, onOpened?: PushHandler): void {
+  pushReceivedHandler = onReceived
+
+  if (onOpened !== undefined) {
+    pushOpenedHandler = onOpened
+  }
+}
+
+async function dispatchReceived(payload: PushPayload): Promise<void> {
+  await pushReceivedHandler?.(payload)
+}
+
+async function dispatchOpened(payload: PushPayload): Promise<void> {
+  await pushOpenedHandler?.(payload)
+}
 
 function parsePushData(
   data: Record<string, string> | undefined,
@@ -154,10 +172,7 @@ async function resolveServiceWorkerRegistration(): Promise<ServiceWorkerRegistra
   return navigator.serviceWorker.ready
 }
 
-async function registerNativePush(
-  settings: AppSettings,
-  onReceived: PushHandler,
-): Promise<string> {
+async function registerNativePush(settings: AppSettings): Promise<string> {
   let permStatus = await PushNotifications.checkPermissions()
 
   if (permStatus.receive === 'prompt' || permStatus.receive === 'prompt-with-rationale') {
@@ -199,7 +214,7 @@ async function registerNativePush(
 
       await playNotificationSound(settings.soundEnabled)
       await showForegroundNotification(payload)
-      onReceived(payload)
+      await dispatchReceived(payload)
     },
   )
 
@@ -208,7 +223,8 @@ async function registerNativePush(
     async (action) => {
       const payload = payloadFromNative(action.notification)
 
-      onReceived(payload)
+      await dispatchReceived(payload)
+      await dispatchOpened(payload)
     },
   )
 
@@ -217,10 +233,7 @@ async function registerNativePush(
   return tokenPromise
 }
 
-async function registerWebPush(
-  settings: AppSettings,
-  onReceived: PushHandler,
-): Promise<string> {
+async function registerWebPush(settings: AppSettings): Promise<string> {
   if (!isFirebaseConfigured()) {
     throw new Error(
       'Firebase web push is not configured. Add vapidKey to firebase.json or VITE_FIREBASE_VAPID_KEY.',
@@ -289,7 +302,7 @@ async function registerWebPush(
 
       await playNotificationSound(settings.soundEnabled)
       await showForegroundNotification(payload)
-      onReceived(payload)
+      await dispatchReceived(payload)
     })
     pushLog('foreground onMessage handler bound')
   }
@@ -300,8 +313,10 @@ async function registerWebPush(
 export async function initializePushNotifications(
   settings: AppSettings,
   onReceived: PushHandler,
-  options: { force?: boolean } = {},
+  options: { force?: boolean; onOpened?: PushHandler } = {},
 ): Promise<string> {
+  setPushHandlers(onReceived, options.onOpened)
+
   if (initialized && !options.force && currentToken) {
     return currentToken
   }
@@ -317,8 +332,8 @@ export async function initializePushNotifications(
       }
 
       const token = Capacitor.isNativePlatform()
-        ? await registerNativePush(settings, onReceived)
-        : await registerWebPush(settings, onReceived)
+        ? await registerNativePush(settings)
+        : await registerWebPush(settings)
 
       initialized = true
 

@@ -26,48 +26,53 @@ npm run dev
 
 **Register** with company slug + name + email + mobile + password. A company admin must approve you (Filament **Registrations**, or the app **Approvals** tab).
 
-**Sign in** with mobile number + password. The API host is hardcoded to `https://push-service.test`. In `npm run dev`, API calls are proxied (TLS verify off) so Herd cert warnings are ignored. After login the app stores your company from the authenticated user. Device preferences live under **Settings**.
+**Sign in** with mobile number + password. The API host is hardcoded to `https://cloudpusher-backend.on-forge.com`. In `npm run dev`, API calls are proxied to avoid CORS. After login the app stores your company from the authenticated user. Device preferences live under **Settings**.
 
 ## Environment variables
 
+Firebase defaults live in `firebase.json` (including the public VAPID key). Optional overrides:
+
 ```env
-# Required for PWA / web push only
-VITE_FIREBASE_API_KEY=
-VITE_FIREBASE_AUTH_DOMAIN=
-VITE_FIREBASE_PROJECT_ID=
-VITE_FIREBASE_MESSAGING_SENDER_ID=
-VITE_FIREBASE_APP_ID=
 VITE_FIREBASE_VAPID_KEY=
 ```
-
-Firebase config is written to `public/firebase-config.js` at build/dev start for the service worker.
 
 ## Native builds
 
 ```bash
-npm run build
-npx cap sync
-
-# iOS
-npx cap add ios   # first time
-npx cap open ios
-
-# Android
-npx cap add android   # first time
-npx cap open android
+npm run cap:ios       # build web + sync + open Xcode
+# or
+npm run build && npx cap sync ios && npx cap open ios
 ```
 
 ### iOS requirements
 
-- Enable Push Notifications capability in Xcode
-- Upload APNs key to Laravel backend (`PUSH_APNS_ENABLED=true`)
-- Device tokens register as `apns` platform
+1. In Xcode: select your **Team** under Signing & Capabilities (bundle id `com.cloudpusher.receiver`)
+2. Confirm **Push Notifications** capability is on (entitlements ship with the project)
+3. Run on a **physical iPhone** — APNs does not work on the Simulator
+4. Backend: `PUSH_APNS_ENABLED=true` plus APNs key/cert config (`APN_*` in Laravel `.env`)
+5. After login, Inbox should register an `apns` device token
 
 ### Android requirements
 
-- Add `google-services.json` to the Android project
-- Configure Firebase in Laravel (`PUSH_FCM_ENABLED=true`)
-- Device tokens register as `fcm` platform
+1. `google-services.json` is in `android/app/` (package `africa.ncloud.pusher` must match `applicationId`)
+2. JDK **21** required (set via `android/gradle.properties` → `org.gradle.java.home`)
+3. Backend: `PUSH_FCM_ENABLED=true` plus Firebase credentials
+4. Tokens register as platform `fcm`
+
+```bash
+# Build debug APK
+cd android && ./gradlew assembleDebug
+
+# Run on a connected phone / running emulator
+npm run cap:run:android
+npx cap run android --list
+npx cap run android --target <device-id>
+
+# Or install the already-built APK
+adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+Android Studio is optional — not required if you use `cap run` / `adb`.
 
 ## PWA install
 

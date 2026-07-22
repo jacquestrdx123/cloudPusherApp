@@ -18,5 +18,6 @@
     }
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue", "firebase.json"],
+  "exclude": ["src/sw.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

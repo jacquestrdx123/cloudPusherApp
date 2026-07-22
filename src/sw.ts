@@ -51,8 +51,52 @@ onBackgroundMessage(messaging, (payload) => {
     .catch((error) => console.error('[push-sw] failed to show notification', error))
 })
 
+function notificationDeepLink(data: Record<string, unknown> | undefined): string {
+  const pushId = data?.push_notification_id
+
+  if (pushId === undefined || pushId === null || pushId === '') {
+    return '/tabs/inbox'
+  }
+
+  return `/tabs/inbox?push_notification_id=${encodeURIComponent(String(pushId))}`
+}
+
+async function openOrFocusDeepLink(url: string): Promise<void> {
+  const clients = await self.clients.matchAll({
+    type: 'window',
+    includeUncontrolled: true,
+  })
+
+  for (const client of clients) {
+    if (!('focus' in client)) {
+      continue
+    }
+
+    await client.focus()
+
+    if ('navigate' in client && typeof client.navigate === 'function') {
+      await client.navigate(url)
+
+      return
+    }
+
+    client.postMessage({
+      type: 'NOTIFICATION_CLICK',
+      url,
+    })
+
+    return
+  }
+
+  await self.clients.openWindow(url)
+}
+
 self.addEventListener('notificationclick', (event) => {
   console.info('[push-sw] notification clicked', event.notification?.tag)
   event.notification.close()
-  event.waitUntil(self.clients.openWindow('/'))
+
+  const data = (event.notification.data ?? {}) as Record<string, unknown>
+  const url = notificationDeepLink(data)
+
+  event.waitUntil(openOrFocusDeepLink(url))
 })

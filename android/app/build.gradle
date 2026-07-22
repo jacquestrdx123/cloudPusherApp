@@ -4,7 +4,7 @@ android {
     namespace = "com.cloudpusher.receiver"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.cloudpusher.receiver"
+        applicationId "africa.ncloud.pusher"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
