@@ -10,8 +10,10 @@ Cross-platform push notification receiver for the cloudPusher Laravel backend. R
 
 - Push notification registration with the cloudPusher API
 - Inbox UI with unread badges and pull-to-refresh
-- **Rich iOS notifications** — big images/GIFs, custom sounds and action buttons
-  via a Notification Service Extension ([docs](docs/ios-rich-push-notifications.md))
+- **Rich notifications** — big images/GIFs, custom sounds and action buttons on
+  iOS ([docs](docs/ios-rich-push-notifications.md)) and Android
+  ([docs](docs/android-rich-push-notifications.md)); backend payload spec in
+  [docs/backend-rich-push-implementation.md](docs/backend-rich-push-implementation.md)
 - **Sound on receive** (foreground app audio + native system sound)
 - Haptic feedback on native platforms
 - Offline cache of recent notifications
