@@ -11,20 +11,61 @@ firebase.initializeApp(self.FIREBASE_CONFIG)
 
 const messaging = firebase.messaging()
 
+// Keep in sync with src/services/media.ts (MEDIA_URL_KEYS).
+const MEDIA_URL_KEYS = [
+  'media_url',
+  'image_url',
+  'image',
+  'attachment_url',
+  'attachment-url',
+  'media-url',
+  'picture',
+  'fcm_image',
+]
+
+function extractMediaUrl(data) {
+  if (!data) {
+    return null
+  }
+
+  for (const key of MEDIA_URL_KEYS) {
+    const value = data[key]
+
+    if (typeof value === 'string' && /^https?:\/\//i.test(value.trim())) {
+      return value.trim()
+    }
+  }
+
+  const image = data.fcm_options && data.fcm_options.image
+
+  if (typeof image === 'string' && /^https?:\/\//i.test(image.trim())) {
+    return image.trim()
+  }
+
+  return null
+}
+
 messaging.onBackgroundMessage((payload) => {
   // Backend sends data-only messages for web; title/body live in `data`.
   const data = payload.data ?? {}
   const title = data.title ?? payload.notification?.title ?? 'Notification'
   const body = data.body ?? payload.notification?.body ?? ''
+  const image = extractMediaUrl(data)
 
-  self.registration.showNotification(title, {
+  const options = {
     body,
     icon: '/favicon.png',
     badge: '/favicon.png',
     tag: payload.data?.push_notification_id ?? String(Date.now()),
     data: payload.data,
     silent: false,
-  })
+  }
+
+  if (image) {
+    options.image = image
+  }
+
+  self.registration.showNotification(title, options)
 })
 
 function notificationDeepLink(data) {

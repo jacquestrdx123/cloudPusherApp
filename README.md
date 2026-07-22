@@ -10,6 +10,10 @@ Cross-platform push notification receiver for the cloudPusher Laravel backend. R
 
 - Push notification registration with the cloudPusher API
 - Inbox UI with unread badges and pull-to-refresh
+- **Rich notifications** — big images/GIFs, custom sounds and action buttons on
+  iOS ([docs](docs/ios-rich-push-notifications.md)) and Android
+  ([docs](docs/android-rich-push-notifications.md)); backend payload spec in
+  [docs/backend-rich-push-implementation.md](docs/backend-rich-push-implementation.md)
 - **Sound on receive** (foreground app audio + native system sound)
 - Haptic feedback on native platforms
 - Offline cache of recent notifications
@@ -51,6 +55,10 @@ npm run build && npx cap sync ios && npx cap open ios
 3. Run on a **physical iPhone** — APNs does not work on the Simulator
 4. Backend: `PUSH_APNS_ENABLED=true` plus APNs key/cert config (`APN_*` in Laravel `.env`)
 5. After login, Inbox should register an `apns` device token
+6. **Rich notifications (images + custom sounds):** the `NotificationService`
+   extension is already in the Xcode project — assign a signing team to it once,
+   and have the backend send `mutable-content: 1` plus a `media_url`. Full
+   payload spec and one-time setup: [docs/ios-rich-push-notifications.md](docs/ios-rich-push-notifications.md)
 
 ### Android requirements
 
@@ -58,6 +66,10 @@ npm run build && npx cap sync ios && npx cap open ios
 2. JDK **21** required (set via `android/gradle.properties` → `org.gradle.java.home`)
 3. Backend: `PUSH_FCM_ENABLED=true` plus Firebase credentials
 4. Tokens register as platform `fcm`
+5. **Rich notifications (big picture + custom sound):** the app creates a
+   `rich_messages_v1` channel with a bundled sound; the backend sends
+   `android.notification.image` + `channel_id`. Full payload spec:
+   [docs/android-rich-push-notifications.md](docs/android-rich-push-notifications.md)
 
 ```bash
 # Build debug APK

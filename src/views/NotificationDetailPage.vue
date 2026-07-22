@@ -16,6 +16,12 @@
           <span v-if="notification.companyName">{{ notification.companyName }}</span>
         </p>
         <h1>{{ notification.title }}</h1>
+        <img
+          v-if="mediaUrl"
+          class="notification-media"
+          :src="mediaUrl"
+          alt=""
+        />
         <p v-if="notification.body" class="detail__body">{{ notification.body }}</p>
         <div class="detail__times">
           <span>Delivered {{ formattedDeliveredAt }}</span>
@@ -62,6 +68,7 @@ import {
   IonToolbar,
 } from '@ionic/vue'
 import { useNotificationStore } from '@/stores/notifications'
+import { extractMediaUrl } from '@/services/media'
 
 const route = useRoute()
 const store = useNotificationStore()
@@ -69,6 +76,8 @@ const store = useNotificationStore()
 const notification = computed(() =>
   store.findByRouteId(String(route.params.id)),
 )
+
+const mediaUrl = computed(() => extractMediaUrl(notification.value?.payload))
 
 const payloadEntries = computed(() =>
   Object.entries(notification.value?.payload ?? {}),
@@ -130,6 +139,15 @@ function formatValue(value: unknown): string {
   font-weight: 700;
   letter-spacing: -0.035em;
   line-height: 1.2;
+}
+
+.notification-media {
+  display: block;
+  width: 100%;
+  max-height: 320px;
+  margin: 0 0 1rem;
+  border-radius: calc(var(--cp-radius) - 4px);
+  object-fit: cover;
 }
 
 .detail__body {
