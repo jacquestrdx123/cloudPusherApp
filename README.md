@@ -10,6 +10,10 @@ Cross-platform push notification receiver for the cloudPusher Laravel backend. R
 
 - Push notification registration with the cloudPusher API
 - Inbox UI with unread badges and pull-to-refresh
+- **Rich notifications** — big images/GIFs, custom sounds and action buttons on
+  iOS ([docs](docs/ios-rich-push-notifications.md)) and Android
+  ([docs](docs/android-rich-push-notifications.md)); backend payload spec in
+  [docs/backend-rich-push-implementation.md](docs/backend-rich-push-implementation.md)
 - **Sound on receive** (foreground app audio + native system sound)
 - Haptic feedback on native platforms
 - Offline cache of recent notifications
@@ -62,12 +66,20 @@ npx cap open android
 - Enable Push Notifications capability in Xcode
 - Upload APNs key to Laravel backend (`PUSH_APNS_ENABLED=true`)
 - Device tokens register as `apns` platform
+- **Rich notifications (images + custom sounds):** the `NotificationService`
+  extension is already in the Xcode project — assign a signing team to it once,
+  and have the backend send `mutable-content: 1` plus a `media_url`. Full
+  payload spec and one-time setup: [docs/ios-rich-push-notifications.md](docs/ios-rich-push-notifications.md)
 
 ### Android requirements
 
 - Add `google-services.json` to the Android project
 - Configure Firebase in Laravel (`PUSH_FCM_ENABLED=true`)
 - Device tokens register as `fcm` platform
+- **Rich notifications (big picture + custom sound):** the app creates a
+  `rich_messages_v1` channel with a bundled sound; the backend sends
+  `android.notification.image` + `channel_id`. Full payload spec:
+  [docs/android-rich-push-notifications.md](docs/android-rich-push-notifications.md)
 
 ## PWA install
 
