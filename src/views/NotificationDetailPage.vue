@@ -23,6 +23,14 @@
           alt=""
         />
         <p v-if="notification.body" class="detail__body">{{ notification.body }}</p>
+        <ion-button
+          v-if="externalUrl"
+          expand="block"
+          class="detail__link"
+          @click="openExternalUrl"
+        >
+          {{ urlLabel }}
+        </ion-button>
         <div class="detail__times">
           <span>Delivered {{ formattedDeliveredAt }}</span>
           <span v-if="notification.readAt">Read {{ formattedReadAt }}</span>
@@ -54,8 +62,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { Browser } from '@capacitor/browser'
+import { Capacitor } from '@capacitor/core'
 import {
   IonBackButton,
+  IonButton,
   IonButtons,
   IonContent,
   IonHeader,
@@ -70,6 +81,8 @@ import {
 import { useNotificationStore } from '@/stores/notifications'
 import { extractMediaUrl } from '@/services/media'
 
+const HIDDEN_PAYLOAD_KEYS = new Set(['url', 'url_label'])
+
 const route = useRoute()
 const store = useNotificationStore()
 
@@ -79,8 +92,40 @@ const notification = computed(() =>
 
 const mediaUrl = computed(() => extractMediaUrl(notification.value?.payload))
 
+const externalUrl = computed((): string | null => {
+  const value = notification.value?.payload?.url
+
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const trimmed = value.trim()
+
+  if (!trimmed.startsWith('https://')) {
+    return null
+  }
+
+  try {
+    return new URL(trimmed).toString()
+  } catch {
+    return null
+  }
+})
+
+const urlLabel = computed(() => {
+  const value = notification.value?.payload?.url_label
+
+  if (typeof value === 'string' && value.trim() !== '') {
+    return value.trim()
+  }
+
+  return 'Open link'
+})
+
 const payloadEntries = computed(() =>
-  Object.entries(notification.value?.payload ?? {}),
+  Object.entries(notification.value?.payload ?? {}).filter(
+    ([key]) => !HIDDEN_PAYLOAD_KEYS.has(key),
+  ),
 )
 
 const formattedDeliveredAt = computed(() => {
@@ -101,6 +146,21 @@ const formattedReadAt = computed(() => {
 
 function formatValue(value: unknown): string {
   return typeof value === 'object' ? JSON.stringify(value) : String(value)
+}
+
+async function openExternalUrl(): Promise<void> {
+  const url = externalUrl.value
+
+  if (!url) {
+    return
+  }
+
+  if (Capacitor.isNativePlatform()) {
+    await Browser.open({ url })
+    return
+  }
+
+  window.open(url, '_blank', 'noopener,noreferrer')
 }
 </script>
 
@@ -155,6 +215,10 @@ function formatValue(value: unknown): string {
   color: var(--cp-ink-soft);
   font-size: 1.02rem;
   line-height: 1.55;
+}
+
+.detail__link {
+  margin: 0 0 1rem;
 }
 
 .detail__times {

@@ -36,4 +36,14 @@ npm-debug.log*
 google-services.json
 GoogleService-Info.plist
 android/app/google-services.json
+android/key.properties
+android/*.keystore
 ios/App/App/GoogleService-Info.plist
+
+# Native build artifacts / store packages
+ios/build/
+*.aab
+*.ipa
+*.xcarchive
+STORE-RELEASE-HANDOFF.md
+
