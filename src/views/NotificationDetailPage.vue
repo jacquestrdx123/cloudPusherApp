@@ -62,8 +62,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Browser } from '@capacitor/browser'
-import { Capacitor } from '@capacitor/core'
+import { openInAppBrowser } from '@/services/browser'
 import {
   IonBackButton,
   IonButton,
@@ -155,12 +154,7 @@ async function openExternalUrl(): Promise<void> {
     return
   }
 
-  if (Capacitor.isNativePlatform()) {
-    await Browser.open({ url })
-    return
-  }
-
-  window.open(url, '_blank', 'noopener,noreferrer')
+  await openInAppBrowser(url)
 }
 </script>
 

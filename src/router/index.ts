@@ -15,7 +15,12 @@ const routes: Array<RouteRecordRaw> = [
   },
   {
     path: '/register',
-    redirect: '/login',
+    component: () => import('@/views/RegisterPage.vue'),
+    meta: { guest: true },
+  },
+  {
+    path: '/support',
+    component: () => import('@/views/SupportPage.vue'),
   },
   {
     path: '/tabs/',

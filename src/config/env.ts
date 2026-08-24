@@ -34,6 +34,8 @@ export const config = {
   contactUrl: `${API_ORIGIN}/register`,
   /** Public privacy policy for App Store / in-app disclosure. */
   privacyUrl: `${API_ORIGIN}/privacy`,
+  /** Public support page for App Store Connect and in-app help. */
+  supportUrl: `${API_ORIGIN}/support`,
   firebase: {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY || firebaseDefaults.apiKey || '',
     authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || firebaseDefaults.authDomain || '',

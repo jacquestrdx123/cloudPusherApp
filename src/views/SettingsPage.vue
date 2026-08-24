@@ -42,7 +42,7 @@
               v-model="form.deviceName"
               label="Device name"
               label-placement="stacked"
-              placeholder="iPhone 15, Pixel 8, Browser"
+              placeholder="This device"
             />
           </ion-item>
           <ion-item>
@@ -60,6 +60,9 @@
         </ion-button>
         <ion-button expand="block" fill="outline" @click="enablePush" :disabled="enablingPush">
           Enable push notifications
+        </ion-button>
+        <ion-button expand="block" fill="outline" router-link="/support">
+          Support
         </ion-button>
         <ion-button expand="block" fill="outline" @click="openPrivacyPolicy">
           Privacy policy
@@ -106,8 +109,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Browser } from '@capacitor/browser'
-import { Capacitor } from '@capacitor/core'
 import {
   IonAlert,
   IonButton,
@@ -128,6 +129,7 @@ import {
   type AlertInput,
 } from '@ionic/vue'
 import { config } from '@/config/env'
+import { openInAppBrowser } from '@/services/browser'
 import { useSettings } from '@/composables/useSettings'
 import { deleteAccount, logout as apiLogout } from '@/services/api'
 import { getCurrentPushToken, initializePushNotifications } from '@/services/push'
@@ -268,14 +270,7 @@ async function enablePush(): Promise<void> {
 }
 
 async function openPrivacyPolicy(): Promise<void> {
-  const url = config.privacyUrl
-
-  if (Capacitor.isNativePlatform()) {
-    await Browser.open({ url })
-    return
-  }
-
-  window.open(url, '_blank', 'noopener,noreferrer')
+  await openInAppBrowser(config.privacyUrl)
 }
 
 async function signOut(): Promise<void> {

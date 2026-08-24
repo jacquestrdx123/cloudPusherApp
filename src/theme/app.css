@@ -132,3 +132,88 @@ ion-chip {
 .cp-status ion-icon {
   font-size: 0.95rem;
 }
+
+.auth-backdrop {
+  min-height: 100%;
+  background:
+    radial-gradient(120% 70% at 10% -10%, color-mix(in srgb, var(--ion-color-primary) 28%, transparent), transparent 55%),
+    radial-gradient(90% 50% at 100% 0%, color-mix(in srgb, #f97316 18%, transparent), transparent 50%),
+    var(--ion-background-color);
+}
+
+.auth-shell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: min(100%, 28rem);
+  min-height: 100%;
+  margin: 0 auto;
+  padding: calc(2.5rem + env(safe-area-inset-top)) 1.25rem calc(2rem + env(safe-area-inset-bottom));
+}
+
+.auth-brand {
+  margin: 0 0 1.75rem 0.15rem;
+}
+
+.auth-brand__mark {
+  display: block;
+  width: 4.5rem;
+  height: 4.5rem;
+  margin-bottom: 1.1rem;
+  border-radius: 1.15rem;
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--ion-color-primary) 35%, transparent);
+}
+
+.auth-brand__name {
+  margin: 0 0 0.55rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ion-color-primary);
+}
+
+.auth-brand h1 {
+  margin: 0 0 0.55rem;
+  font-size: clamp(1.9rem, 6vw, 2.35rem);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 1.1;
+}
+
+.auth-brand__copy {
+  margin: 0;
+  max-width: 22rem;
+  color: var(--ion-color-medium);
+  line-height: 1.5;
+  font-size: 0.98rem;
+}
+
+.auth-card {
+  border-radius: var(--cp-radius);
+  background: var(--cp-surface);
+  border: 1px solid var(--cp-border);
+  overflow: hidden;
+  box-shadow: 0 18px 40px rgba(15, 20, 25, 0.08);
+}
+
+.auth-card ion-list {
+  background: transparent;
+  padding-top: 0.35rem;
+}
+
+.auth-error {
+  margin: 0.85rem 1rem 0;
+  padding: 0.8rem 0.9rem;
+  border-radius: var(--cp-radius-sm);
+  background: color-mix(in srgb, var(--ion-color-danger) 12%, transparent);
+  color: var(--ion-color-danger-shade);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.auth-actions {
+  display: grid;
+  gap: 0.25rem;
+  padding: 1rem 1rem 1.15rem;
+}

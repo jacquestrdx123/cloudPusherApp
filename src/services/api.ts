@@ -7,6 +7,8 @@ import type {
   UserRegistrationItem,
 } from '@/types/notification'
 
+export const REQUEST_TIMEOUT_MS = 15_000
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -15,6 +17,26 @@ export class ApiError extends Error {
     super(message)
     this.name = 'ApiError'
   }
+}
+
+export function describeRequestFailure(error: unknown): string {
+  if (error instanceof ApiError) {
+    return error.message
+  }
+
+  if (error instanceof DOMException && error.name === 'AbortError') {
+    return 'The server did not respond. Check your connection and try again.'
+  }
+
+  if (error instanceof TypeError) {
+    return 'Could not reach the server. Check your internet connection and try again.'
+  }
+
+  if (error instanceof Error && error.message.trim()) {
+    return error.message
+  }
+
+  return 'Something went wrong. Please try again.'
 }
 
 function headers(accessToken?: string): HeadersInit {
@@ -59,36 +81,74 @@ async function request<T>(
   init?: RequestInit,
   accessToken?: string,
 ): Promise<T> {
-  const response = await fetch(url, {
-    ...init,
-    headers: {
-      ...headers(accessToken),
-      ...(init?.headers ?? {}),
-    },
-  })
+  const controller = new AbortController()
+  let timeoutId = 0
 
-  if (!response.ok) {
-    let message = `Request failed (${response.status})`
+  try {
+    const response = await Promise.race([
+      fetch(url, {
+        ...init,
+        signal: controller.signal,
+        headers: {
+          ...headers(accessToken),
+          ...(init?.headers ?? {}),
+        },
+      }),
+      new Promise<never>((_, reject) => {
+        timeoutId = window.setTimeout(() => {
+          controller.abort()
+          reject(new DOMException('The request timed out.', 'AbortError'))
+        }, REQUEST_TIMEOUT_MS)
+      }),
+    ])
 
-    try {
-      const body = await response.json()
-      const firstError = Object.values(body.errors ?? {}).flat()[0]
-      message =
-        (typeof firstError === 'string' ? firstError : null) ??
-        body.message ??
-        message
-    } catch {
-      // ignore parse errors
+    if (!response.ok) {
+      let message = defaultHttpErrorMessage(response.status)
+
+      try {
+        const body = await response.json()
+        const firstError = Object.values(body.errors ?? {}).flat()[0]
+        message =
+          (typeof firstError === 'string' ? firstError : null) ??
+          (typeof body.message === 'string' ? body.message : null) ??
+          message
+      } catch {
+        // ignore parse errors
+      }
+
+      throw new ApiError(message, response.status)
     }
 
-    throw new ApiError(message, response.status)
+    if (response.status === 204) {
+      return undefined as T
+    }
+
+    return response.json() as Promise<T>
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error
+    }
+
+    throw new ApiError(describeRequestFailure(error), 0)
+  } finally {
+    window.clearTimeout(timeoutId)
+  }
+}
+
+function defaultHttpErrorMessage(status: number): string {
+  if (status === 401) {
+    return 'Incorrect mobile number or password.'
   }
 
-  if (response.status === 204) {
-    return undefined as T
+  if (status === 404) {
+    return 'The requested resource was not found.'
   }
 
-  return response.json() as Promise<T>
+  if (status >= 500) {
+    return 'The server is temporarily unavailable. Please try again later.'
+  }
+
+  return `Request failed (${status})`
 }
 
 export async function registerCompanyUser(
