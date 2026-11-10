@@ -80,7 +80,7 @@ import {
   IonPage,
 } from '@ionic/vue'
 import { useSettings } from '@/composables/useSettings'
-import { describeRequestFailure, loginWithPassword } from '@/services/api'
+import { describeRequestFailure, loginWithPassword, normalizePhoneInput } from '@/services/api'
 
 const router = useRouter()
 const { hydrate, update, configured } = useSettings()
@@ -115,7 +115,7 @@ async function signIn(): Promise<void> {
     return
   }
 
-  const phone = form.phone.trim()
+  const phone = normalizePhoneInput(form.phone)
   const password = form.password
 
   if (phone.length < 8 || !password) {

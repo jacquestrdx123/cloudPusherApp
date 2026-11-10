@@ -88,6 +88,62 @@ export interface InboxApiItem {
   } | null
 }
 
+export interface CompanyMemberItem {
+  id: number
+  name: string
+  email: string
+  phone: string | null
+  is_company_admin: boolean
+}
+
+export interface CompanyGroupItem {
+  id: number
+  name: string
+  slug: string
+  users_count: number
+}
+
+export type MessageRecipients =
+  | { type: 'users'; user_ids: number[] }
+  | { type: 'group'; group_id: number }
+  | { type: 'broadcast' }
+
+export interface CompanyMessagePayload {
+  title: string
+  body?: string | null
+  recipients: MessageRecipients
+}
+
+export interface CompanyMessageResult {
+  sent: number
+  notification_ids: number[]
+}
+
+export interface InviteMemberPayload {
+  name: string
+  email: string
+  phone: string
+  is_company_admin: boolean
+}
+
+export interface InviteMemberResult {
+  status: 'invited' | 'added'
+  member: CompanyMemberItem
+}
+
+export interface CompanyInvitationItem {
+  id: number
+  user_id: number
+  name: string
+  email: string
+  phone: string | null
+  is_company_admin: boolean
+  invited_by: string | null
+  expires_at: string
+  is_expired: boolean
+  created_at: string | null
+}
+
 export interface PaginatedResponse<T> {
   data: T[]
   meta?: {

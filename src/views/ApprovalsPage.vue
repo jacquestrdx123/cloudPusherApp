@@ -47,24 +47,94 @@
               </ion-label>
             </ion-item>
 
-            <ion-list-header>Add existing member</ion-list-header>
+            <ion-list-header>Add member</ion-list-header>
             <ion-item>
               <ion-input
-                v-model="invitePhone"
+                v-model="inviteForm.name"
+                label="Full name"
+                label-placement="stacked"
+                autocomplete="name"
+                placeholder="Thandi Mokoena"
+              />
+            </ion-item>
+            <ion-item>
+              <ion-input
+                v-model="inviteForm.phone"
                 label="Mobile number"
                 label-placement="stacked"
                 type="tel"
+                autocomplete="tel"
                 placeholder="+27821234567"
               />
+            </ion-item>
+            <ion-item>
+              <ion-input
+                v-model="inviteForm.email"
+                label="E-mail"
+                label-placement="stacked"
+                type="email"
+                autocomplete="email"
+                placeholder="thandi@example.com"
+              />
+            </ion-item>
+            <ion-item>
+              <ion-toggle v-model="inviteForm.isCompanyAdmin">Company admin</ion-toggle>
+            </ion-item>
+            <ion-item lines="none">
+              <ion-label class="ion-text-wrap">
+                <p>
+                  New people receive an invitation with a link to set their password. People who
+                  already use cloudPusher are added straight away.
+                </p>
+              </ion-label>
             </ion-item>
             <ion-item lines="none">
               <ion-button
                 expand="block"
-                :disabled="inviting || !invitePhone.trim()"
+                class="add-member-button"
+                :disabled="inviting || !canInvite"
                 @click="inviteMember"
               >
                 Add member
               </ion-button>
+            </ion-item>
+          </ion-list>
+        </div>
+
+        <div v-if="invitations.length > 0" class="cp-panel">
+          <ion-list lines="full">
+            <ion-list-header>Pending invitations</ion-list-header>
+            <ion-item v-for="invitation in invitations" :key="invitation.id">
+              <ion-label>
+                <h2>
+                  {{ invitation.name }}
+                  <span v-if="invitation.is_company_admin" class="admin-badge">Admin</span>
+                </h2>
+                <p>{{ invitation.phone }}</p>
+                <p>{{ invitation.email }}</p>
+                <p v-if="invitation.is_expired" class="expired">
+                  Link expired {{ formatDate(invitation.expires_at) }}
+                </p>
+                <p v-else>Link valid until {{ formatDate(invitation.expires_at) }}</p>
+              </ion-label>
+              <div slot="end" class="item-actions">
+                <ion-button
+                  size="small"
+                  :disabled="busyInvitationId === invitation.id"
+                  @click="resend(invitation)"
+                >
+                  Resend
+                </ion-button>
+                <ion-button
+                  size="small"
+                  color="danger"
+                  fill="outline"
+                  :disabled="busyInvitationId === invitation.id"
+                  @click="revokeTarget = invitation"
+                >
+                  Revoke
+                </ion-button>
+              </div>
             </ion-item>
           </ion-list>
         </div>
@@ -116,6 +186,14 @@
         </div>
       </template>
 
+      <ion-alert
+        :is-open="revokeTarget !== null"
+        header="Revoke invitation"
+        :message="revokeAlertMessage"
+        :buttons="revokeAlertButtons"
+        @didDismiss="revokeTarget = null"
+      />
+
       <ion-toast
         :is-open="Boolean(message)"
         :message="message ?? ''"
@@ -128,8 +206,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import {
+  IonAlert,
   IonButton,
   IonButtons,
   IonContent,
@@ -146,26 +225,63 @@ import {
   IonSpinner,
   IonTitle,
   IonToast,
+  IonToggle,
   IonToolbar,
+  type AlertButton,
 } from '@ionic/vue'
 import { checkmarkCircleOutline, refreshOutline, shieldOutline } from 'ionicons/icons'
 import { useSettings } from '@/composables/useSettings'
 import {
   approveRegistration,
+  fetchInvitations,
   fetchRegistrations,
-  inviteCompanyMember,
+  inviteNewMember,
   rejectRegistration,
+  resendInvitation,
+  revokeInvitation,
 } from '@/services/api'
-import type { UserRegistrationItem } from '@/types/notification'
+import type { CompanyInvitationItem, UserRegistrationItem } from '@/types/notification'
 
 const { settings, hydrate, update } = useSettings()
 const items = ref<UserRegistrationItem[]>([])
+const invitations = ref<CompanyInvitationItem[]>([])
 const loading = ref(true)
 const busyId = ref<number | null>(null)
+const busyInvitationId = ref<number | null>(null)
+const revokeTarget = ref<CompanyInvitationItem | null>(null)
 const inviting = ref(false)
-const invitePhone = ref('')
+const inviteForm = reactive({
+  name: '',
+  phone: '',
+  email: '',
+  isCompanyAdmin: false,
+})
 const message = ref<string | null>(null)
 const messageColor = ref<'success' | 'danger'>('success')
+
+const canInvite = computed(
+  () =>
+    inviteForm.name.trim() !== '' &&
+    inviteForm.phone.trim() !== '' &&
+    /^\S+@\S+\.\S+$/.test(inviteForm.email.trim()),
+)
+const revokeAlertMessage = computed(() =>
+  revokeTarget.value
+    ? `${revokeTarget.value.name} will no longer be able to use their invitation link.`
+    : '',
+)
+const revokeAlertButtons: AlertButton[] = [
+  { text: 'Cancel', role: 'cancel' },
+  {
+    text: 'Revoke',
+    role: 'destructive',
+    handler: () => {
+      if (revokeTarget.value) {
+        void revoke(revokeTarget.value)
+      }
+    },
+  },
+]
 
 const isCompanyAdmin = computed(() => Boolean(settings.value?.isCompanyAdmin))
 const adminCompanies = computed(
@@ -206,34 +322,106 @@ async function refresh(): Promise<void> {
 
   loading.value = true
 
-  try {
-    const response = await fetchRegistrations(current, 'pending')
-    items.value = response.data
-  } catch (error) {
-    messageColor.value = 'danger'
-    message.value = error instanceof Error ? error.message : 'Failed to load registrations'
-  } finally {
-    loading.value = false
+  const [registrationsResult, invitationsResult] = await Promise.allSettled([
+    fetchRegistrations(current, 'pending'),
+    fetchInvitations(current),
+  ])
+
+  if (registrationsResult.status === 'fulfilled') {
+    items.value = registrationsResult.value.data
+  } else {
+    showError(registrationsResult.reason, 'Failed to load registrations')
   }
+
+  if (invitationsResult.status === 'fulfilled') {
+    invitations.value = invitationsResult.value
+  } else {
+    invitations.value = []
+    showError(invitationsResult.reason, 'Failed to load invitations')
+  }
+
+  loading.value = false
+}
+
+function showError(error: unknown, fallback: string): void {
+  messageColor.value = 'danger'
+  message.value = error instanceof Error ? error.message : fallback
+}
+
+function resetInviteForm(): void {
+  inviteForm.name = ''
+  inviteForm.phone = ''
+  inviteForm.email = ''
+  inviteForm.isCompanyAdmin = false
 }
 
 async function inviteMember(): Promise<void> {
-  if (!settings.value) {
+  if (!settings.value || !canInvite.value) {
     return
   }
 
   inviting.value = true
 
   try {
-    await inviteCompanyMember(settings.value, { phone: invitePhone.value.trim() })
-    invitePhone.value = ''
+    const result = await inviteNewMember(settings.value, {
+      name: inviteForm.name,
+      phone: inviteForm.phone,
+      email: inviteForm.email,
+      is_company_admin: inviteForm.isCompanyAdmin,
+    })
+
+    resetInviteForm()
     messageColor.value = 'success'
-    message.value = 'Member added to this company'
+    message.value =
+      result.status === 'invited'
+        ? `Invitation sent to ${result.member.name}`
+        : `${result.member.name} added to ${activeCompanyName.value}`
+
+    if (result.status === 'invited') {
+      invitations.value = await fetchInvitations(settings.value)
+    }
   } catch (error) {
-    messageColor.value = 'danger'
-    message.value = error instanceof Error ? error.message : 'Could not add member'
+    showError(error, 'Could not add member')
   } finally {
     inviting.value = false
+  }
+}
+
+async function resend(invitation: CompanyInvitationItem): Promise<void> {
+  if (!settings.value) {
+    return
+  }
+
+  busyInvitationId.value = invitation.id
+
+  try {
+    const updated = await resendInvitation(settings.value, invitation.id)
+    invitations.value = invitations.value.map((item) => (item.id === updated.id ? updated : item))
+    messageColor.value = 'success'
+    message.value = `Invitation resent to ${invitation.name}`
+  } catch (error) {
+    showError(error, 'Could not resend invitation')
+  } finally {
+    busyInvitationId.value = null
+  }
+}
+
+async function revoke(invitation: CompanyInvitationItem): Promise<void> {
+  if (!settings.value) {
+    return
+  }
+
+  busyInvitationId.value = invitation.id
+
+  try {
+    await revokeInvitation(settings.value, invitation.id)
+    invitations.value = invitations.value.filter((item) => item.id !== invitation.id)
+    messageColor.value = 'success'
+    message.value = `Invitation for ${invitation.name} revoked`
+  } catch (error) {
+    showError(error, 'Could not revoke invitation')
+  } finally {
+    busyInvitationId.value = null
   }
 }
 
@@ -287,5 +475,24 @@ onMounted(async () => {
 .item-actions {
   display: grid;
   gap: 0.35rem;
+}
+
+.add-member-button {
+  width: 100%;
+}
+
+.admin-badge {
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: var(--ion-color-primary);
+  color: var(--ion-color-primary-contrast);
+  font-size: 0.7rem;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.expired {
+  color: var(--ion-color-danger) !important;
 }
 </style>

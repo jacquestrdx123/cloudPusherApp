@@ -5,6 +5,7 @@ import {
   findNotificationByRouteId,
   inboxItemToNotification,
   mergeInboxItems,
+  notificationSenderName,
   pushPayloadToNotification,
   useNotificationStore,
 } from '@/stores/notifications'
@@ -119,5 +120,16 @@ describe('notification store deep links', () => {
 
     expect(store.findByPushNotificationId('7')?.id).toBe('push-7')
     expect(store.findByRouteId('push-7')?.title).toBe('Hello')
+  })
+})
+
+describe('notificationSenderName', () => {
+  it('reads the sender from a member message payload', () => {
+    expect(notificationSenderName({ sender_id: 4, sender_name: ' Lerato ' })).toBe('Lerato')
+  })
+
+  it('returns null for system notifications without a sender', () => {
+    expect(notificationSenderName({ severity: 'critical' })).toBeNull()
+    expect(notificationSenderName(undefined)).toBeNull()
   })
 })

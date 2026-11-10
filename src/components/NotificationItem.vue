@@ -16,6 +16,7 @@
         <span class="notif__time">{{ formattedTime }}</span>
       </div>
       <p v-if="notification.companyName" class="notif__company">{{ notification.companyName }}</p>
+      <p v-if="senderName" class="notif__sender">From {{ senderName }}</p>
       <p v-if="notification.body" class="notif__body">{{ notification.body }}</p>
     </ion-label>
     <span v-if="!notification.read" class="notif__dot" aria-label="Unread" />
@@ -34,11 +35,14 @@ import {
   notificationsOutline,
   phonePortraitOutline,
 } from 'ionicons/icons'
+import { notificationSenderName } from '@/stores/notifications'
 import type { ReceivedNotification } from '@/types/notification'
 
 const props = defineProps<{
   notification: ReceivedNotification
 }>()
+
+const senderName = computed(() => notificationSenderName(props.notification.payload))
 
 defineEmits<{
   select: [notification: ReceivedNotification]
@@ -140,6 +144,13 @@ const formattedTime = computed(() => {
   letter-spacing: 0.02em;
   text-transform: uppercase;
   color: var(--ion-color-primary);
+}
+
+.notif__sender {
+  margin: 0.2rem 0 0;
+  font-size: 0.8rem;
+  font-weight: 550;
+  color: var(--ion-text-color);
 }
 
 .notif__body {

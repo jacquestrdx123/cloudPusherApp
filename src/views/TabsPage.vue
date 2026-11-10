@@ -8,6 +8,10 @@
           <ion-label>Inbox</ion-label>
           <ion-badge v-if="store.unreadCount" color="primary">{{ store.unreadCount }}</ion-badge>
         </ion-tab-button>
+        <ion-tab-button tab="compose" href="/tabs/compose">
+          <ion-icon :icon="paperPlaneOutline" />
+          <ion-label>Send</ion-label>
+        </ion-tab-button>
         <ion-tab-button v-if="isCompanyAdmin" tab="approvals" href="/tabs/approvals">
           <ion-icon :icon="checkmarkCircleOutline" />
           <ion-label>Approvals</ion-label>
@@ -33,7 +37,12 @@ import {
   IonTabButton,
   IonTabs,
 } from '@ionic/vue'
-import { checkmarkCircleOutline, notificationsOutline, settingsOutline } from 'ionicons/icons'
+import {
+  checkmarkCircleOutline,
+  notificationsOutline,
+  paperPlaneOutline,
+  settingsOutline,
+} from 'ionicons/icons'
 import { useSettings } from '@/composables/useSettings'
 import { useNotificationStore } from '@/stores/notifications'
 

@@ -2,7 +2,14 @@ import { config } from '@/config/env'
 import type {
   AppSettings,
   AuthUser,
+  CompanyGroupItem,
+  CompanyInvitationItem,
+  CompanyMemberItem,
+  CompanyMessagePayload,
+  CompanyMessageResult,
   InboxApiItem,
+  InviteMemberPayload,
+  InviteMemberResult,
   PaginatedResponse,
   UserRegistrationItem,
 } from '@/types/notification'
@@ -140,15 +147,31 @@ function defaultHttpErrorMessage(status: number): string {
     return 'Incorrect mobile number or password.'
   }
 
+  if (status === 403) {
+    return 'You do not have permission to do that.'
+  }
+
   if (status === 404) {
     return 'The requested resource was not found.'
+  }
+
+  if (status === 422) {
+    return 'Please check the details you entered and try again.'
+  }
+
+  if (status === 429) {
+    return 'Too many attempts. Please wait a minute and try again.'
   }
 
   if (status >= 500) {
     return 'The server is temporarily unavailable. Please try again later.'
   }
 
-  return `Request failed (${status})`
+  return 'Something went wrong. Please try again.'
+}
+
+export function normalizePhoneInput(phone: string): string {
+  return phone.trim().replace(/[\s().-]/g, '')
 }
 
 export async function registerCompanyUser(
@@ -346,6 +369,54 @@ export async function rejectRegistration(
   return response.data
 }
 
+export async function fetchCompanyMembers(
+  settings: AppSettings,
+  companySlug: string,
+  search = '',
+): Promise<PaginatedResponse<CompanyMemberItem>> {
+  const params = new URLSearchParams({ per_page: '100' })
+
+  if (search.trim()) {
+    params.set('search', search.trim())
+  }
+
+  return request(
+    companyUrl(companySlug, `/members?${params}`),
+    { method: 'GET' },
+    settings.accessToken,
+  )
+}
+
+export async function fetchCompanyGroups(
+  settings: AppSettings,
+  companySlug: string,
+): Promise<CompanyGroupItem[]> {
+  const response = await request<{ data: CompanyGroupItem[] }>(
+    companyUrl(companySlug, '/groups'),
+    { method: 'GET' },
+    settings.accessToken,
+  )
+
+  return response.data
+}
+
+export async function sendCompanyMessage(
+  settings: AppSettings,
+  companySlug: string,
+  payload: CompanyMessagePayload,
+): Promise<CompanyMessageResult> {
+  const response = await request<{ data: CompanyMessageResult }>(
+    companyUrl(companySlug, '/messages'),
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+    settings.accessToken,
+  )
+
+  return response.data
+}
+
 export async function inviteCompanyMember(
   settings: AppSettings,
   payload: { phone?: string; email?: string },
@@ -358,6 +429,63 @@ export async function inviteCompanyMember(
       method: 'POST',
       body: JSON.stringify(payload),
     },
+    settings.accessToken,
+  )
+}
+
+export async function inviteNewMember(
+  settings: AppSettings,
+  payload: InviteMemberPayload,
+): Promise<InviteMemberResult> {
+  const slug = adminCompanySlug(settings)
+  const response = await request<{ data: InviteMemberResult }>(
+    companyUrl(slug, '/invitations'),
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        ...payload,
+        phone: normalizePhoneInput(payload.phone),
+        email: payload.email.trim(),
+        name: payload.name.trim(),
+      }),
+    },
+    settings.accessToken,
+  )
+
+  return response.data
+}
+
+export async function fetchInvitations(settings: AppSettings): Promise<CompanyInvitationItem[]> {
+  const slug = adminCompanySlug(settings)
+  const response = await request<{ data: CompanyInvitationItem[] }>(
+    companyUrl(slug, '/invitations'),
+    { method: 'GET' },
+    settings.accessToken,
+  )
+
+  return response.data
+}
+
+export async function resendInvitation(
+  settings: AppSettings,
+  invitationId: number,
+): Promise<CompanyInvitationItem> {
+  const slug = adminCompanySlug(settings)
+  const response = await request<{ data: CompanyInvitationItem }>(
+    companyUrl(slug, `/invitations/${invitationId}/resend`),
+    { method: 'POST' },
+    settings.accessToken,
+  )
+
+  return response.data
+}
+
+export async function revokeInvitation(settings: AppSettings, invitationId: number): Promise<void> {
+  const slug = adminCompanySlug(settings)
+
+  await request(
+    companyUrl(slug, `/invitations/${invitationId}`),
+    { method: 'DELETE' },
     settings.accessToken,
   )
 }

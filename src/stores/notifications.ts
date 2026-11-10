@@ -17,6 +17,12 @@ function parsePushNotificationId(value: unknown): number | null {
   return null
 }
 
+export function notificationSenderName(payload: Record<string, unknown> | undefined): string | null {
+  const value = payload?.sender_name
+
+  return typeof value === 'string' && value.trim() !== '' ? value.trim() : null
+}
+
 export function inboxItemToNotification(item: InboxApiItem): ReceivedNotification {
   return {
     id: `inbox-${item.id}`,

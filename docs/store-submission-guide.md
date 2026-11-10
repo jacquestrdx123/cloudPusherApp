@@ -27,6 +27,51 @@ Support: https://cloudpusher-backend.on-forge.com/support
 
 ---
 
+## App Review resubmission (1.1 build 4)
+
+Apple rejected 1.1 (3) on 26 August 2026 (reviewed on iPad Air 11-inch M3,
+iPadOS 26.6.1). Before submitting build 4:
+
+1. **Guideline 2.3.10 — metadata** — Re-paste every App Store Connect field
+   from the **APP STORE CONNECT (iOS)** half of the metadata doc, using its
+   paste checklist. Check the App Review Notes too: no Android, Google Play,
+   Play Store, or FCM wording anywhere.
+2. **Guideline 2.1(a) — login error** — Sign in with the exact demo credentials
+   on an iPad (or the iPad simulator) against production. The demo user must
+   belong to an **active** company; a user whose only company is inactive gets
+   "These credentials do not match our records." Sign-in is now rate limited
+   separately (`PUSH_LOGIN_RATE_LIMIT`, default 10/min) with a readable message,
+   and the app no longer shows raw `Request failed (N)` errors.
+3. **Guideline 1.5 — Support URL** — Open
+   `https://cloudpusher-backend.on-forge.com/support` in a private browser
+   window right before pressing Submit. It must load and show the contact
+   e-mail. Keep the Forge site up for the whole review.
+
+### Reply you can paste in App Store Connect
+
+```
+Thank you for the review.
+
+1. Guideline 2.3.10: We have revised the app description, promotional text,
+   keywords, release notes, and review notes. They no longer reference any
+   other platform.
+
+2. Guideline 2.1(a): We tested sign in on iPad Air (iPadOS 26) with the demo
+   credentials in the review notes and confirmed the demo account is active.
+   Sign in errors now show clear, specific messages. Please retry with the
+   credentials provided.
+
+3. Guideline 1.5: The Support URL
+   https://cloudpusher-backend.on-forge.com/support is live and includes help
+   for sign in, registration, and account deletion, plus a contact form and a
+   direct support e-mail address.
+
+This build also adds the ability to send messages to colleagues, groups, or
+the whole company from the new Send tab.
+```
+
+---
+
 ## App Review resubmission (1.0 build 2)
 
 Apple rejected 1.0 (1) on 4 August 2026. Fix these in App Store Connect before

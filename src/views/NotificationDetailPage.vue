@@ -16,6 +16,7 @@
           <span v-if="notification.companyName">{{ notification.companyName }}</span>
         </p>
         <h1>{{ notification.title }}</h1>
+        <p v-if="senderName" class="detail__sender">From {{ senderName }}</p>
         <img
           v-if="mediaUrl"
           class="notification-media"
@@ -77,10 +78,10 @@ import {
   IonTitle,
   IonToolbar,
 } from '@ionic/vue'
-import { useNotificationStore } from '@/stores/notifications'
+import { notificationSenderName, useNotificationStore } from '@/stores/notifications'
 import { extractMediaUrl } from '@/services/media'
 
-const HIDDEN_PAYLOAD_KEYS = new Set(['url', 'url_label'])
+const HIDDEN_PAYLOAD_KEYS = new Set(['url', 'url_label', 'sender_id', 'sender_name'])
 
 const route = useRoute()
 const store = useNotificationStore()
@@ -90,6 +91,8 @@ const notification = computed(() =>
 )
 
 const mediaUrl = computed(() => extractMediaUrl(notification.value?.payload))
+
+const senderName = computed(() => notificationSenderName(notification.value?.payload))
 
 const externalUrl = computed((): string | null => {
   const value = notification.value?.payload?.url
@@ -193,6 +196,13 @@ async function openExternalUrl(): Promise<void> {
   font-weight: 700;
   letter-spacing: -0.035em;
   line-height: 1.2;
+}
+
+.detail__sender {
+  margin: -0.35rem 0 0.85rem;
+  color: var(--ion-color-medium);
+  font-size: 0.9rem;
+  font-weight: 550;
 }
 
 .notification-media {
