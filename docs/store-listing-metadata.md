@@ -28,7 +28,7 @@ Ready-to-paste copy. The document has two halves:
 | Description | Description |
 | Keywords | Keywords |
 | Support URL | URL above |
-| What's New in This Version | What's New (v1.1) |
+| What's New in This Version | What's New (v1.1) — the field only appears once a version has been released |
 | App Review Information → Notes | App Review notes |
 
 ## App name
@@ -78,18 +78,49 @@ Admins can invite new team members.
 ```
 
 ## App Review notes
+
+As submitted with 1.1 (4) on 10 November 2026. The demo accounts live in a dedicated
+"Demo Company" on the production backend; see "Demo accounts for App Review" in
+[store-submission-guide.md](store-submission-guide.md) for how to create or reset them.
+The password is never written down here: it goes only into the Sign-In Information
+password field in App Store Connect.
+
 ```
-cloudPusher requires an account on a cloudPusher-powered backend. A demo
-account is provided:
+cloudPusher is the companion app for the cloudPusher notification platform. Companies use it to deliver push notifications to their staff, to let staff message each other, and to let company admins onboard new team members. An account is required, so two demo accounts in a dedicated "Demo Company" are provided.
 
-Mobile number: <demo phone>
-Password: <demo password>
+DEMO ACCOUNTS
+Account 1 (company admin): the mobile number and password in the Sign-In Information fields above. Mobile number: +277760813541
+Account 2 (colleague, optional): mobile number +277949010334, same password as Account 1.
+Enter the mobile number exactly as shown, including the + sign.
 
-1. Launch the app and tap Sign in.
-2. Enter the mobile number and password above.
-3. The Inbox tab lists notifications sent to the demo company.
-4. The Send tab lets you message a colleague, a group, or the whole company.
-5. Settings → Delete account removes the account.
+SIGN IN
+1. Launch the app. Allow notifications when prompted.
+2. On the Sign in screen, enter the Mobile number and Password for Account 1 and tap Sign in.
+3. The app opens on the Inbox tab.
+
+INBOX
+4. The Inbox lists sample notifications sent to the Demo Company. Pull down to refresh.
+5. Tap a notification to open its detail view. "Welcome to cloudPusher" includes an image.
+
+SEND
+6. Open the Send tab.
+7. Choose People, Group, or Everyone. For People, select "Sam Colleague" (Account 2) and yourself from the list.
+8. Enter a Title and a Message, then tap the send button.
+9. A confirmation such as "Message sent to 2 people" appears. Open the Inbox tab and tap the refresh button to see the message arrive.
+
+APPROVALS (ONBOARDING TEAM MEMBERS)
+10. Open the Approvals tab. It is shown to company admins only, so use Account 1.
+11. A pending registration from "Jordan Applicant" is listed. Tap Approve or Reject. Once approved, Jordan appears in the Send tab's list of people.
+12. To invite a new team member, enter a Full name, Mobile number, and E-mail in the Add member form and tap Add member.
+
+SETTINGS AND ACCOUNT DELETION
+13. Open the Settings tab to see the profile and notification preferences.
+14. Account deletion is at Settings > Delete account. Sign out is on the same screen.
+
+REGISTRATION
+15. From the Sign in screen, "Need an account? Register" opens an in-app registration form (company slug, full name, email, mobile number, password). New accounts must be approved by a company admin before they can sign in, which is why pre-approved demo accounts are supplied.
+
+All sign in, registration, and account deletion happens inside the app. No purchases or subscriptions are offered.
 
 Support: https://cloudpusher-backend.on-forge.com/support
 ```

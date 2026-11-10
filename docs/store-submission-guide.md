@@ -14,7 +14,7 @@ Generated graphic assets live in `store-assets/`.
 
 | Item | iOS | Android |
 |---|---|---|
-| Signed binary | ✅ uploaded to ASC (1.0 build 1) | ✅ `cloudpusher-1.0.aab` (versionCode 1) |
+| Signed binary | ✅ 1.1 build 4 resubmitted 10 Nov 2026, waiting for review | ✅ `cloudpusher-1.0.aab` (versionCode 1) |
 | App icon | ✅ in project | ✅ `store-assets/play/play-icon-512.png` |
 | Feature graphic | n/a | ✅ `store-assets/play/feature-graphic-1024x500.png` |
 | Privacy policy URL | ✅ live | ✅ live |
@@ -29,37 +29,59 @@ Support: https://cloudpusher-backend.on-forge.com/support
 
 ## App Review resubmission (1.1 build 4)
 
+**Status: resubmitted on 10 November 2026, waiting for review.**
+
 Apple rejected 1.1 (3) on 26 August 2026 (reviewed on iPad Air 11-inch M3,
-iPadOS 26.6.1). Before submitting build 4:
+iPadOS 26.6.1). What was done for build 4:
 
-1. **Guideline 2.3.10 — metadata** — Re-paste every App Store Connect field
-   from the **APP STORE CONNECT (iOS)** half of the metadata doc, using its
-   paste checklist. Check the App Review Notes too: no Android, Google Play,
-   Play Store, or FCM wording anywhere.
-2. **Guideline 2.1(a) — login error** — Sign in with the exact demo credentials
-   on an iPad (or the iPad simulator) against production. The demo user must
-   belong to an **active** company; a user whose only company is inactive gets
-   "These credentials do not match our records." Sign-in is now rate limited
-   separately (`PUSH_LOGIN_RATE_LIMIT`, default 10/min) with a readable message,
-   and the app no longer shows raw `Request failed (N)` errors.
-3. **Guideline 1.5 — Support URL** — Open
-   `https://cloudpusher-backend.on-forge.com/support` in a private browser
-   window right before pressing Submit. It must load and show the contact
-   e-mail. Keep the Forge site up for the whole review.
+1. **Guideline 2.3.10 — metadata** — The live description still said "iOS (APNs)
+   and Android (FCM)" and the keywords included `fcm`. Description, promotional
+   text, keywords and App Review Notes were replaced from the **APP STORE CONNECT
+   (iOS)** half of the metadata doc. No Android, Google Play, Play Store, or FCM
+   wording anywhere.
+2. **Guideline 2.1(a) — login error** — The demo login was replaced with a
+   dedicated demo account (see below) and checked on an iPad Air 11-inch
+   simulator: sign in, Inbox, Send, Approvals and Settings. Sign-in is rate
+   limited separately (`PUSH_LOGIN_RATE_LIMIT`, default 10/min) with a readable
+   message, and the app no longer shows raw `Request failed (N)` errors.
+3. **Guideline 1.5 — Support URL** —
+   `https://cloudpusher-backend.on-forge.com/support` must load and show the
+   contact e-mail. Keep the Forge site up for the whole review.
 
-### Reply you can paste in App Store Connect
+### Demo accounts for App Review
+
+Reviewers sign in to an isolated "Demo Company" (slug `app-review-demo`) on the
+production backend, so they never see real company data. Create or reset it on
+the Forge server, in the site directory:
 
 ```
-Thank you for the review.
+php artisan app-review:demo +277760813541 +277949010334
+```
+
+- Account one (Alex Reviewer, company admin) goes into Sign-In Information in App
+  Store Connect. Account two (Sam Colleague) is listed in the review notes.
+- Every run prints a **new random password** and resets the demo: five sample
+  notifications, one pending registration ("Jordan Applicant"), and nobody a
+  previous run approved or invited.
+- After the final run, paste the printed password into the Sign-In Information
+  password field and save. Then do not run the command or sign in to the demo
+  again until the review is finished, or the saved password and the clean state
+  are lost.
+
+### Reply sent in App Store Connect
+
+```
+Thank you for the review. This resubmission uses a new build, 1.1 (4).
 
 1. Guideline 2.3.10: We have revised the app description, promotional text,
-   keywords, release notes, and review notes. They no longer reference any
-   other platform.
+   keywords, and review notes. They no longer reference any other platform.
 
-2. Guideline 2.1(a): We tested sign in on iPad Air (iPadOS 26) with the demo
-   credentials in the review notes and confirmed the demo account is active.
-   Sign in errors now show clear, specific messages. Please retry with the
-   credentials provided.
+2. Guideline 2.1(a): Sign in errors now show clear, specific messages, and we
+   have replaced the demo account. The Sign-In Information fields now contain a
+   new demo account in a dedicated "Demo Company", and the review notes list a
+   second demo account plus step-by-step testing instructions. We tested sign
+   in, the Inbox, sending a message, and approving a new team member with these
+   credentials on an iPad Air 11-inch. Please retry with the new credentials.
 
 3. Guideline 1.5: The Support URL
    https://cloudpusher-backend.on-forge.com/support is live and includes help
@@ -69,6 +91,14 @@ Thank you for the review.
 This build also adds the ability to send messages to colleagues, groups, or
 the whole company from the new Send tab.
 ```
+
+### Where to click when resubmitting
+
+1. Apps → CloudPusher → **iOS App 1.1** (left sidebar): edit text, swap the
+   build under **Build**, update **App Review Information**, then **Save**.
+2. **Update Review** (top right of the same page).
+3. **General → App Review** → open the unresolved submission → **Reply to App
+   Review** → **Resubmit to App Review**.
 
 ---
 
